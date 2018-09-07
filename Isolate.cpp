@@ -48,7 +48,7 @@ static void SignalHandler(int sig) {
 }
 
 static void RegisterSignalHandler() {
-  sighandler_t ret = signal(SIGINT, SignalHandler);
+  auto ret = signal(SIGINT, SignalHandler);
   if (ret == SIG_ERR) {
     PLOG(FATAL) << "Setting up SIGINT handler failed";
   }
@@ -59,7 +59,7 @@ static void RegisterSignalHandler() {
 }
 
 static void UnregisterSignalHandler() {
-  sighandler_t ret = signal(SIGINT, SIG_DFL);
+  auto ret = signal(SIGINT, SIG_DFL);
   if (ret == SIG_ERR) {
     PLOG(FATAL) << "Disabling SIGINT handler failed";
   }
@@ -89,7 +89,11 @@ void Isolate::EnumerateTests() {
     command += " --gtest_filter=" + options_.filter();
   }
   command += " --gtest_list_tests";
+#if defined(__APPLE__)
+  FILE* fp = popen(command.c_str(), "r");
+#else
   FILE* fp = popen(command.c_str(), "re");
+#endif
   if (fp == nullptr) {
     PLOG(FATAL) << "Unexpected failure from popen";
   }
