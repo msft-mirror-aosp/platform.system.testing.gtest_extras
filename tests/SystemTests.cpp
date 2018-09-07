@@ -87,8 +87,12 @@ void SystemTests::SanitizeOutput() {
 
 void SystemTests::Exec(std::vector<const char*> args) {
   int fds[2];
+#if !defined(__APPLE__)
   ASSERT_NE(-1, pipe2(fds, O_NONBLOCK));
+#else
+  ASSERT_NE(-1, pipe(fds));
   ASSERT_NE(-1, fcntl(fds[0], F_SETFL, O_NONBLOCK));
+#endif
 
   if ((pid_ = fork()) == 0) {
     // Run the test.
@@ -416,7 +420,11 @@ TEST_F(SystemTests, verify_crash) {
   std::string expected =
       "[==========] Running 1 test from 1 test case (20 jobs).\n"
       "[  FAILED  ] SystemTests.DISABLED_crash (XX ms)\n"
+#if defined(__APPLE__)
+      "SystemTests.DISABLED_crash terminated by signal: Segmentation fault: 11.\n"
+#else
       "SystemTests.DISABLED_crash terminated by signal: Segmentation fault.\n"
+#endif
       "[==========] 1 test from 1 test case ran. (XX ms total)\n"
       "[   PASS   ] 0 tests.\n"
       "[   FAIL   ] 1 test, listed below:\n"
