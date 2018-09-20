@@ -15,6 +15,7 @@
  */
 
 #include <fcntl.h>
+#include <malloc.h>
 #include <signal.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -27,6 +28,7 @@
 #include <vector>
 
 #include <android-base/file.h>
+#include <android-base/strings.h>
 #include <android-base/test_utils.h>
 #include <gtest/gtest.h>
 
@@ -978,6 +980,52 @@ TEST_F(SystemTests, verify_SIGQUIT_after_test_finish) {
   ASSERT_EQ(0, WEXITSTATUS(status));
 }
 
+TEST_F(SystemTests, verify_memory) {
+  // This test verifies that memory isn't leaking when running repeatedly.
+  std::vector<const char*> args{"--gtest_filter=*.DISABLED_memory",
+                                "--gtest_also_run_disabled_tests", "--gtest_repeat=400"};
+  ExecAndCapture(args);
+  ASSERT_EQ(0, exitcode_) << "Test output:\n" << raw_output_;
+  std::vector<std::string> lines(android::base::Split(raw_output_, "\n"));
+
+  constexpr static size_t kMaxLeakBytes = 32 * 1024;
+  size_t memory_iteration = 0;
+  size_t memory_start = 0;
+  size_t memory_last = 0;
+  for (auto& line : lines) {
+    size_t memory;
+    if (android::base::StartsWith(line, "Allocated ") &&
+        sscanf(line.c_str(), "Allocated %zu", &memory) == 1) {
+      if (memory_iteration == 0) {
+        memory_start = memory;
+      } else {
+        // Check the increase from the last loop.
+        if (memory > memory_last) {
+          ASSERT_GT(kMaxLeakBytes, memory - memory_last)
+              << "On iteration " << memory_iteration << " memory increased beyond expected value."
+              << std::endl
+              << "Last memory bytes " << memory_last << std::endl
+              << "Current memory bytes " << memory;
+        }
+        // Check the increase from the first loop.
+        if (memory > memory_start) {
+          ASSERT_GT(kMaxLeakBytes, memory - memory_start)
+              << "On iteration " << memory_iteration
+              << " total memory increased beyond expected value." << std::endl
+              << "Starting memory bytes " << memory_start << std::endl
+              << "Current memory bytes " << memory;
+        }
+      }
+      memory_last = memory;
+      memory_iteration++;
+    }
+  }
+  ASSERT_EQ(400, memory_iteration)
+      << "Did not find the expected 400 lines of memory data." << std::endl
+      << "Raw output:" << std::endl
+      << raw_output_;
+}
+
 // These tests are used by the verify_disabled tests.
 TEST_F(SystemTests, always_pass) {}
 
@@ -1154,6 +1202,15 @@ TEST(SystemTestsXml3, DISABLED_xml_1) {}
 
 TEST(SystemTestsXml3, DISABLED_xml_2) {
   ASSERT_EQ(1, 0);
+}
+
+TEST(SystemTestsMemory, DISABLED_memory) {
+  struct mallinfo info = mallinfo();
+#if defined(__ANDROID__)
+  printf("Allocated %zu\n", info.uordblks);
+#else
+  printf("Allocated %d\n", info.uordblks);
+#endif
 }
 
 }  // namespace gtest_extras
