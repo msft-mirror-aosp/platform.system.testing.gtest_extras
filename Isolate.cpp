@@ -203,11 +203,11 @@ void Isolate::LaunchTests() {
       exit(ChildProcessFn(tests_[cur_test_index_]));
     }
 
-    size_t run_index = running_indices_.top();
-    running_indices_.pop();
+    size_t run_index = running_indices_.back();
+    running_indices_.pop_back();
     Test* test = new Test(tests_[cur_test_index_], cur_test_index_, run_index, read_fd.release());
+    running_by_pid_.emplace(pid, test);
     running_[run_index] = test;
-    running_by_pid_[pid] = test;
     running_by_test_index_[cur_test_index_] = test;
 
     pollfd* pollfd = &running_pollfds_[run_index];
@@ -247,7 +247,8 @@ size_t Isolate::CheckTestsFinished() {
       LOG(FATAL) << "Pid " << pid << " was not spawned by the isolation framework.";
     }
 
-    Test* test = entry->second;
+    std::unique_ptr<Test>& test_ptr = entry->second;
+    Test* test = test_ptr.get();
     test->Stop();
 
     // Read any leftover data.
@@ -312,8 +313,8 @@ size_t Isolate::CheckTestsFinished() {
     }
     finished_tests++;
     size_t test_index = test->test_index();
-    finished_.emplace(test_index, test);
-    running_indices_.push(test->run_index());
+    finished_.emplace(test_index, test_ptr.release());
+    running_indices_.push_back(test->run_index());
 
     // Remove it from all of the running indices.
     size_t run_index = test->run_index();
@@ -337,7 +338,7 @@ size_t Isolate::CheckTestsFinished() {
 
 void Isolate::CheckTestsTimeout() {
   for (auto& entry : running_by_pid_) {
-    Test* test = entry.second;
+    Test* test = entry.second.get();
     if (test->result() == TEST_TIMEOUT) {
       continue;
     }
@@ -388,8 +389,9 @@ void Isolate::RunAllTests() {
   running_.resize(job_count);
   running_pollfds_.resize(job_count);
   memset(running_pollfds_.data(), 0, running_pollfds_.size() * sizeof(pollfd));
+  running_indices_.clear();
   for (size_t i = 0; i < job_count; i++) {
-    running_indices_.push(i);
+    running_indices_.push_back(i);
   }
 
   finished_.clear();
@@ -417,7 +419,7 @@ void Isolate::PrintResults(size_t total, const char* color, const char* prefix, 
   ColoredPrintf(color, prefix);
   printf(" %s, listed below:\n", PluralizeString(total, " test").c_str());
   for (const auto& entry : finished_) {
-    const Test* test = entry.second;
+    const Test* test = entry.second.get();
     if (match_func(*test)) {
       ColoredPrintf(color, prefix);
       printf(" %s", test->name().c_str());
@@ -585,7 +587,7 @@ void Isolate::WriteXmlResults(uint64_t elapsed_time_ns, time_t start_time) {
   std::vector<CaseInfo> cases;
   CaseInfo* info = nullptr;
   for (const auto& entry : finished_) {
-    const Test* test = entry.second;
+    const Test* test = entry.second.get();
     const std::string& case_name = test->case_name();
     if (test->result() == TEST_XFAIL) {
       // Skip XFAIL tests.

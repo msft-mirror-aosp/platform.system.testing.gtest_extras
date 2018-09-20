@@ -21,6 +21,7 @@
 #include <sys/types.h>
 
 #include <map>
+#include <memory>
 #include <stack>
 #include <string>
 #include <tuple>
@@ -91,11 +92,11 @@ class Isolate {
 
   std::vector<Test*> running_;
   std::vector<pollfd> running_pollfds_;
-  std::stack<size_t> running_indices_;
-  std::unordered_map<pid_t, Test*> running_by_pid_;
+  std::vector<size_t> running_indices_;
+  std::unordered_map<pid_t, std::unique_ptr<Test>> running_by_pid_;
   std::map<size_t, Test*> running_by_test_index_;
 
-  std::map<size_t, Test*> finished_;
+  std::map<size_t, std::unique_ptr<Test>> finished_;
 
   static constexpr useconds_t MIN_USECONDS_WAIT = 1000;
 };
