@@ -15,7 +15,9 @@
  */
 
 #include <fcntl.h>
+#if !defined(__APPLE__)
 #include <malloc.h>
+#endif
 #include <signal.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -1205,11 +1207,15 @@ TEST(SystemTestsXml3, DISABLED_xml_2) {
 }
 
 TEST(SystemTestsMemory, DISABLED_memory) {
+#if !defined(__APPLE__)
   struct mallinfo info = mallinfo();
 #if defined(__ANDROID__)
   printf("Allocated %zu\n", info.uordblks);
 #else
   printf("Allocated %d\n", info.uordblks);
+#endif
+#else
+  printf("Allocated 0\n");
 #endif
 }
 
