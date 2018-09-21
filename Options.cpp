@@ -41,25 +41,25 @@ constexpr uint64_t kDefaultDeadlineThresholdMs = 90000;
 constexpr uint64_t kDefaultSlowThresholdMs = 2000;
 
 const std::unordered_map<std::string, Options::ArgInfo> Options::kArgs = {
-    {"deadline_threshold_ms", {FLAG_TAKES_VALUE, &Options::SetThreshold}},
-    {"slow_threshold_ms", {FLAG_TAKES_VALUE, &Options::SetThreshold}},
+    {"deadline_threshold_ms", {FLAG_REQUIRES_VALUE, &Options::SetThreshold}},
+    {"slow_threshold_ms", {FLAG_REQUIRES_VALUE, &Options::SetThreshold}},
     {"gtest_format", {FLAG_NONE, &Options::SetBool}},
     {"gtest_list_tests", {FLAG_NONE, &Options::SetBool}},
-    {"gtest_filter", {FLAG_ENVIRONMENT_VARIABLE | FLAG_TAKES_VALUE, &Options::SetString}},
+    {"gtest_filter", {FLAG_ENVIRONMENT_VARIABLE | FLAG_REQUIRES_VALUE, &Options::SetString}},
     {
         "gtest_repeat",
-        {FLAG_ENVIRONMENT_VARIABLE | FLAG_TAKES_VALUE, &Options::SetIterations},
+        {FLAG_ENVIRONMENT_VARIABLE | FLAG_REQUIRES_VALUE, &Options::SetIterations},
     },
-    {"gtest_output", {FLAG_ENVIRONMENT_VARIABLE | FLAG_TAKES_VALUE, &Options::SetXmlFile}},
-    {"gtest_print_time", {FLAG_ENVIRONMENT_VARIABLE | FLAG_TAKES_VALUE, &Options::SetPrintTime}},
+    {"gtest_output", {FLAG_ENVIRONMENT_VARIABLE | FLAG_REQUIRES_VALUE, &Options::SetXmlFile}},
+    {"gtest_print_time", {FLAG_ENVIRONMENT_VARIABLE | FLAG_OPTIONAL_VALUE, &Options::SetPrintTime}},
     {
         "gtest_also_run_disabled_tests",
         {FLAG_ENVIRONMENT_VARIABLE | FLAG_CHILD, &Options::SetBool},
     },
     {"gtest_color",
-     {FLAG_ENVIRONMENT_VARIABLE | FLAG_TAKES_VALUE | FLAG_CHILD, &Options::SetString}},
+     {FLAG_ENVIRONMENT_VARIABLE | FLAG_REQUIRES_VALUE | FLAG_CHILD, &Options::SetString}},
     {"gtest_death_test_style",
-     {FLAG_ENVIRONMENT_VARIABLE | FLAG_TAKES_VALUE | FLAG_CHILD, nullptr}},
+     {FLAG_ENVIRONMENT_VARIABLE | FLAG_REQUIRES_VALUE | FLAG_CHILD, nullptr}},
     {"gtest_break_on_failure", {FLAG_ENVIRONMENT_VARIABLE | FLAG_INCOMPATIBLE, nullptr}},
     {"gtest_catch_exceptions", {FLAG_ENVIRONMENT_VARIABLE | FLAG_INCOMPATIBLE, nullptr}},
     {"gtest_random_seed", {FLAG_ENVIRONMENT_VARIABLE | FLAG_INCOMPATIBLE, nullptr}},
@@ -96,7 +96,7 @@ static bool GetNumeric(const char* arg, const char* value, IntType* numeric_valu
 }
 
 bool Options::SetPrintTime(const std::string&, const std::string& value, bool) {
-  if (strtol(value.c_str(), nullptr, 10) == 0) {
+  if (!value.empty() && strtol(value.c_str(), nullptr, 10) == 0) {
     bools_.find("gtest_print_time")->second = false;
   }
   return true;
@@ -171,7 +171,7 @@ bool Options::HandleArg(const std::string& arg, const std::string& value, const 
   }
 
   if (info.flags & FLAG_TAKES_VALUE) {
-    if (value.empty()) {
+    if ((info.flags & FLAG_REQUIRES_VALUE) && value.empty()) {
       PrintError(arg, "requires an argument.", from_env);
       return false;
     }
