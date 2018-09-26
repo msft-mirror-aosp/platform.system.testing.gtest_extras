@@ -326,9 +326,7 @@ TEST(OptionsTest, gtest_repeat) {
   EXPECT_EQ(10, options.num_iterations());
   EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
 
-  cur_args.clear();
-  cur_args.push_back("ignore");
-  cur_args.push_back("--gtest_repeat=-1");
+  cur_args = std::vector<const char*>{"ignore", "--gtest_repeat=-1"};
   ASSERT_TRUE(options.Process(cur_args, &child_args));
   EXPECT_EQ(-1, options.num_iterations());
   EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
@@ -357,24 +355,27 @@ TEST(OptionsTest, gtest_repeat_error_overflow) {
 
   capture.Reset();
   capture.Start();
-  std::vector<const char*> cur_args2{"ignore", "--gtest_repeat=-2147483747"};
-  parsed = options.Process(cur_args2, &child_args);
+  cur_args = std::vector<const char*>{"ignore", "--gtest_repeat=-2147483747"};
+  parsed = options.Process(cur_args, &child_args);
   capture.Stop();
   ASSERT_FALSE(parsed) << "Process did not fail properly.";
   EXPECT_EQ("--gtest_repeat value overflows (-2147483747)\n", capture.str());
 }
 
 TEST(OptionsTest, gtest_print_time) {
-  std::vector<const char*> cur_args{"ignore", "--gtest_print_time=0"};
+  std::vector<const char*> cur_args{"ignore", "--gtest_print_time"};
   std::vector<const char*> child_args;
   Options options;
+  ASSERT_TRUE(options.Process(cur_args, &child_args));
+  EXPECT_TRUE(options.print_time());
+  EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
+
+  cur_args = std::vector<const char*>{"ignore", "--gtest_print_time=0"};
   ASSERT_TRUE(options.Process(cur_args, &child_args));
   EXPECT_FALSE(options.print_time());
   EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
 
-  cur_args.clear();
-  cur_args.push_back("ignore");
-  cur_args.push_back("--gtest_print_time=1");
+  cur_args = std::vector<const char*>{"ignore", "--gtest_print_time=1"};
   ASSERT_TRUE(options.Process(cur_args, &child_args));
   EXPECT_TRUE(options.print_time());
   EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
@@ -388,16 +389,12 @@ TEST(OptionsTest, gtest_output) {
   EXPECT_EQ("/file.xml", options.xml_file());
   EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
 
-  cur_args.clear();
-  cur_args.push_back("ignore");
-  cur_args.push_back("--gtest_output=xml:/directory/");
+  cur_args = std::vector<const char*>{"ignore", "--gtest_output=xml:/directory/"};
   ASSERT_TRUE(options.Process(cur_args, &child_args));
   EXPECT_EQ("/directory/test_details.xml", options.xml_file());
   EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
 
-  cur_args.clear();
-  cur_args.push_back("ignore");
-  cur_args.push_back("--gtest_output=xml:cwd.xml");
+  cur_args = std::vector<const char*>{"ignore", "--gtest_output=xml:cwd.xml"};
   ASSERT_TRUE(options.Process(cur_args, &child_args));
   char* cwd = getcwd(nullptr, 0);
   std::string expected_file(cwd);
@@ -430,8 +427,8 @@ TEST(OptionsTest, gtest_output_error_no_xml) {
 
   capture.Reset();
   capture.Start();
-  std::vector<const char*> cur_args2{"ignore", "--gtest_output=not_xml"};
-  parsed = options.Process(cur_args2, &child_args);
+  cur_args = std::vector<const char*>{"ignore", "--gtest_output=not_xml"};
+  parsed = options.Process(cur_args, &child_args);
   capture.Stop();
   ASSERT_FALSE(parsed) << "Process did not fail properly.";
   EXPECT_EQ("--gtest_output only supports an xml output file.\n", capture.str());
@@ -648,6 +645,19 @@ TEST(OptionsTest, gtest_print_time_from_env) {
   Options options;
   ASSERT_TRUE(options.Process(cur_args, &child_args));
   EXPECT_FALSE(options.print_time());
+  EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
+
+  ASSERT_NE(-1, unsetenv("GTEST_PRINT_TIME"));
+}
+
+TEST(OptionsTest, gtest_print_time_no_value_from_env) {
+  ASSERT_NE(-1, setenv("GTEST_PRINT_TIME", "", 1));
+
+  std::vector<const char*> cur_args{"ignore"};
+  std::vector<const char*> child_args;
+  Options options;
+  ASSERT_TRUE(options.Process(cur_args, &child_args));
+  EXPECT_TRUE(options.print_time());
   EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
 
   ASSERT_NE(-1, unsetenv("GTEST_PRINT_TIME"));

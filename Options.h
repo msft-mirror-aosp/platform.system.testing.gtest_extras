@@ -62,8 +62,10 @@ class Options {
     FLAG_CHILD = 0x1,                 // Argument preserved for forked child call.
     FLAG_INCOMPATIBLE = 0x2,          // Not compatible with isolation mode.
     FLAG_ENVIRONMENT_VARIABLE = 0x4,  // Can be an environment variable.
-    FLAG_TAKES_VALUE = 0x8,           // Flag requires a non-empty value.
+    FLAG_REQUIRES_VALUE = 0x8,        // Flag requires a non-empty value.
+    FLAG_OPTIONAL_VALUE = 0x10,       // Flag takes an optional value.
   };
+  static constexpr uint32_t FLAG_TAKES_VALUE = FLAG_REQUIRES_VALUE | FLAG_OPTIONAL_VALUE;
 
   struct ArgInfo {
     uint32_t flags;
