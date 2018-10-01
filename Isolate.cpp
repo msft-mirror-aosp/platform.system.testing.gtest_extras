@@ -413,18 +413,16 @@ void Isolate::RunAllTests() {
   }
 }
 
-void Isolate::PrintResults(size_t total, const char* color, const char* prefix, const char* title,
-                           std::string* footer, bool (*match_func)(const Test&),
-                           void (*print_func)(const Options&, const Test&)) {
-  ColoredPrintf(color, prefix);
-  printf(" %s, listed below:\n", PluralizeString(total, " test").c_str());
+void Isolate::PrintResults(size_t total, const ResultsType& results, std::string* footer) {
+  ColoredPrintf(results.color, results.prefix);
+  printf(" %s %s, listed below:\n", PluralizeString(total, " test").c_str(), results.list_desc);
   for (const auto& entry : finished_) {
     const Test* test = entry.second.get();
-    if (match_func(*test)) {
-      ColoredPrintf(color, prefix);
+    if (results.match_func(*test)) {
+      ColoredPrintf(results.color, results.prefix);
       printf(" %s", test->name().c_str());
-      if (print_func) {
-        print_func(options_, *test);
+      if (results.print_func != nullptr) {
+        results.print_func(options_, *test);
       }
       printf("\n");
     }
@@ -432,8 +430,52 @@ void Isolate::PrintResults(size_t total, const char* color, const char* prefix, 
   if (total < 10) {
     *footer += ' ';
   }
-  *footer += PluralizeString(total, (std::string(" ") + title + " TEST").c_str(), true) + '\n';
+  *footer +=
+      PluralizeString(total, (std::string(" ") + results.title + " TEST").c_str(), true) + '\n';
 }
+
+Isolate::ResultsType Isolate::SlowResults = {
+    .color = COLOR_YELLOW,
+    .prefix = "[   SLOW   ]",
+    .list_desc = "slow",
+    .title = "SLOW",
+    .match_func = [](const Test& test) { return test.slow(); },
+    .print_func =
+        [](const Options& options, const Test& test) {
+          printf(" (%" PRIu64 " ms, exceeded %" PRIu64 " ms)", test.RunTimeNs() / kNsPerMs,
+                 options.slow_threshold_ms());
+        },
+};
+
+Isolate::ResultsType Isolate::XpassFailResults = {
+    .color = COLOR_RED,
+    .prefix = "[   FAIL   ]",
+    .list_desc = "should have failed",
+    .title = "SHOULD HAVE FAILED",
+    .match_func = [](const Test& test) { return test.result() == TEST_XPASS; },
+    .print_func = nullptr,
+};
+
+Isolate::ResultsType Isolate::FailResults = {
+    .color = COLOR_RED,
+    .prefix = "[   FAIL   ]",
+    .list_desc = "failed",
+    .title = "FAILED",
+    .match_func = [](const Test& test) { return test.result() == TEST_FAIL; },
+    .print_func = nullptr,
+};
+
+Isolate::ResultsType Isolate::TimeoutResults = {
+    .color = COLOR_RED,
+    .prefix = "[ TIMEOUT  ]",
+    .list_desc = "timed out",
+    .title = "TIMEOUT",
+    .match_func = [](const Test& test) { return test.result() == TEST_TIMEOUT; },
+    .print_func =
+        [](const Options&, const Test& test) {
+          printf(" (stopped at %" PRIu64 " ms)", test.RunTimeNs() / kNsPerMs);
+        },
+};
 
 void Isolate::PrintFooter(uint64_t elapsed_time_ns) {
   ColoredPrintf(COLOR_GREEN, "[==========]");
@@ -451,33 +493,22 @@ void Isolate::PrintFooter(uint64_t elapsed_time_ns) {
   std::string footer;
   // Tests that ran slow.
   if (total_slow_tests_ != 0) {
-    PrintResults(total_slow_tests_, COLOR_YELLOW, "[   SLOW   ]", "SLOW", &footer,
-                 [](const Test& test) { return test.slow(); },
-                 [](const Options& options, const Test& test) {
-                   printf(" (%" PRIu64 " ms, exceeded %" PRIu64 " ms)", test.RunTimeNs() / kNsPerMs,
-                          options.slow_threshold_ms());
-                 });
+    PrintResults(total_slow_tests_, SlowResults, &footer);
   }
 
   // Tests that passed but should have failed.
   if (total_xpass_tests_ != 0) {
-    PrintResults(total_xpass_tests_, COLOR_RED, "[  XPASS   ]", "SHOULD HAVE FAILED", &footer,
-                 [](const Test& test) { return test.result() == TEST_XPASS; }, nullptr);
+    PrintResults(total_xpass_tests_, XpassFailResults, &footer);
   }
 
   // Tests that timed out.
   if (total_timeout_tests_ != 0) {
-    PrintResults(total_timeout_tests_, COLOR_RED, "[ TIMEOUT  ]", "TIMEOUT", &footer,
-                 [](const Test& test) { return test.result() == TEST_TIMEOUT; },
-                 [](const Options&, const Test& test) {
-                   printf(" (stopped at %" PRIu64 " ms)", test.RunTimeNs() / kNsPerMs);
-                 });
+    PrintResults(total_timeout_tests_, TimeoutResults, &footer);
   }
 
   // Tests that failed.
   if (total_fail_tests_ != 0) {
-    PrintResults(total_fail_tests_, COLOR_RED, "[   FAIL   ]", "FAILED", &footer,
-                 [](const Test& test) { return test.result() == TEST_FAIL; }, nullptr);
+    PrintResults(total_fail_tests_, FailResults, &footer);
   }
 
   if (!footer.empty()) {
