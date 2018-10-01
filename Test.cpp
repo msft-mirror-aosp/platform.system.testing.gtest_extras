@@ -78,17 +78,13 @@ void Test::Print(bool gtest_format) {
   }
 
   switch (result_) {
+    case TEST_XFAIL:
     case TEST_PASS:
       ColoredPrintf(COLOR_GREEN, "[    OK    ]");
       break;
     case TEST_XPASS:
-      ColoredPrintf(COLOR_RED, "[  XPASS   ]");
-      break;
     case TEST_FAIL:
       ColoredPrintf(COLOR_RED, "[  FAILED  ]");
-      break;
-    case TEST_XFAIL:
-      ColoredPrintf(COLOR_YELLOW, "[  XFAIL   ]");
       break;
     case TEST_TIMEOUT:
       ColoredPrintf(COLOR_RED, "[ TIMEOUT  ]");

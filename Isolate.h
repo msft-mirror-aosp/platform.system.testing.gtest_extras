@@ -45,6 +45,15 @@ class Isolate {
   int Run();
 
  private:
+  struct ResultsType {
+    const char* color;
+    const char* prefix;
+    const char* list_desc;
+    const char* title;
+    bool (*match_func)(const Test&);
+    void (*print_func)(const Options&, const Test&);
+  };
+
   size_t CheckTestsFinished();
 
   void CheckTestsTimeout();
@@ -61,9 +70,7 @@ class Isolate {
 
   void PrintFooter(uint64_t elapsed_time_ns);
 
-  void PrintResults(size_t total, const char* color, const char* prefix, const char* title,
-                    std::string* footer, bool (*match_func)(const Test&),
-                    void (*print_func)(const Options&, const Test&));
+  void PrintResults(size_t total, const ResultsType& results, std::string* footer);
 
   void WriteXmlResults(uint64_t elapsed_time_ns, time_t start_time);
 
@@ -71,7 +78,6 @@ class Isolate {
     return std::get<0>(test) + std::get<1>(test);
   }
 
- private:
   const Options& options_;
   const std::vector<const char*>& child_args_;
 
@@ -99,6 +105,11 @@ class Isolate {
   std::map<size_t, std::unique_ptr<Test>> finished_;
 
   static constexpr useconds_t MIN_USECONDS_WAIT = 1000;
+
+  static ResultsType SlowResults;
+  static ResultsType XpassFailResults;
+  static ResultsType FailResults;
+  static ResultsType TimeoutResults;
 };
 
 }  // namespace gtest_extras
