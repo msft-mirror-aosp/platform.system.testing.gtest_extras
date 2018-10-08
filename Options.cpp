@@ -83,7 +83,13 @@ static void PrintError(const std::string& arg, std::string msg, bool from_env) {
 
 template <typename IntType>
 static bool GetNumeric(const char* arg, const char* value, IntType* numeric_value, bool from_env) {
-  if (!android::base::ParseInt<IntType>(value, numeric_value)) {
+  bool result = false;
+  if constexpr (std::is_unsigned<IntType>::value) {
+    result = android::base::ParseUint<IntType>(value, numeric_value);
+  } else {
+    result = android::base::ParseInt<IntType>(value, numeric_value);
+  }
+  if (!result) {
     if (errno == ERANGE) {
       PrintError(arg, std::string("value overflows (") + value + ")", from_env);
     } else {
