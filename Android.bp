@@ -16,7 +16,6 @@ cc_library {
     name: "libgtest_isolated",
     host_supported: true,
     cflags: ["-Wall", "-Werror"],
-    cpp_std: "c++17",
     export_include_dirs: ["include"],
 
     srcs: [
