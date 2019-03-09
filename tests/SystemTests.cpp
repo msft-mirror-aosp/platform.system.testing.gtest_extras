@@ -167,6 +167,7 @@ void SystemTests::Verify(const std::string& test_name, const std::string& expect
 
 TEST_F(SystemTests, verify_pass) {
   std::string expected =
+      "Note: Google Test filter = *.DISABLED_pass\n"
       "[==========] Running 1 test from 1 test case (20 jobs).\n"
       "[    OK    ] SystemTests.DISABLED_pass (XX ms)\n"
       "[==========] 1 test from 1 test case ran. (XX ms total)\n"
@@ -176,6 +177,7 @@ TEST_F(SystemTests, verify_pass) {
 
 TEST_F(SystemTests, verify_pass_no_print_time) {
   std::string expected =
+      "Note: Google Test filter = *.DISABLED_pass\n"
       "[==========] Running 1 test from 1 test case (20 jobs).\n"
       "[    OK    ] SystemTests.DISABLED_pass\n"
       "[==========] 1 test from 1 test case ran. (XX ms total)\n"
@@ -186,6 +188,7 @@ TEST_F(SystemTests, verify_pass_no_print_time) {
 
 TEST_F(SystemTests, verify_pass_color) {
   std::string expected =
+      "\x1B[0;33mNote: Google Test filter = *.DISABLED_pass\x1B[m\n"
       "\x1B[0;32m[==========]\x1B[m Running 1 test from 1 test case (20 jobs).\n"
       "\x1B[0;32m[    OK    ]\x1B[m SystemTests.DISABLED_pass (XX ms)\n"
       "\x1B[0;32m[==========]\x1B[m 1 test from 1 test case ran. (XX ms total)\n"
@@ -196,6 +199,7 @@ TEST_F(SystemTests, verify_pass_color) {
 
 TEST_F(SystemTests, verify_pass_gtest_format) {
   std::string expected =
+      "Note: Google Test filter = *.DISABLED_pass\n"
       "[==========] Running 1 test from 1 test case (20 jobs).\n"
       "[ RUN      ] SystemTests.DISABLED_pass\n"
       "[       OK ] SystemTests.DISABLED_pass (XX ms)\n"
@@ -207,6 +211,7 @@ TEST_F(SystemTests, verify_pass_gtest_format) {
 
 TEST_F(SystemTests, verify_pass_gtest_format_no_print_time) {
   std::string expected =
+      "Note: Google Test filter = *.DISABLED_pass\n"
       "[==========] Running 1 test from 1 test case (20 jobs).\n"
       "[ RUN      ] SystemTests.DISABLED_pass\n"
       "[       OK ] SystemTests.DISABLED_pass\n"
@@ -219,6 +224,7 @@ TEST_F(SystemTests, verify_pass_gtest_format_no_print_time) {
 
 TEST_F(SystemTests, verify_pass_gtest_format_color) {
   std::string expected =
+      "\x1B[0;33mNote: Google Test filter = *.DISABLED_pass\x1B[m\n"
       "\x1B[0;32m[==========]\x1B[m Running 1 test from 1 test case (20 jobs).\n"
       "\x1B[0;32m[ RUN      ]\x1B[m SystemTests.DISABLED_pass\n"
       "\x1B[0;32m[       OK ]\x1B[m SystemTests.DISABLED_pass (XX ms)\n"
@@ -230,6 +236,7 @@ TEST_F(SystemTests, verify_pass_gtest_format_color) {
 
 TEST_F(SystemTests, verify_xfail_fail_expect_to_fail) {
   std::string expected =
+      "Note: Google Test filter = *.xfail_fail\n"
       "[==========] Running 1 test from 1 test case (20 jobs).\n"
       "[    OK    ] DISABLED_SystemTestsXfail.xfail_fail (XX ms)\n"
       "file:(XX) Failure in test DISABLED_SystemTestsXfail.xfail_fail\n"
@@ -244,6 +251,7 @@ TEST_F(SystemTests, verify_xfail_fail_expect_to_fail) {
 
 TEST_F(SystemTests, verify_xfail_fail_expect_to_fail_color) {
   std::string expected =
+      "\x1B[0;33mNote: Google Test filter = *.xfail_fail\x1B[m\n"
       "\x1B[0;32m[==========]\x1B[m Running 1 test from 1 test case (20 jobs).\n"
       "\x1B[0;32m[    OK    ]\x1B[m DISABLED_SystemTestsXfail.xfail_fail (XX ms)\n"
       "file:(XX) Failure in test DISABLED_SystemTestsXfail.xfail_fail\n"
@@ -259,6 +267,7 @@ TEST_F(SystemTests, verify_xfail_fail_expect_to_fail_color) {
 
 TEST_F(SystemTests, verify_xfail_fail_expect_to_fail_gtest_format) {
   std::string expected =
+      "Note: Google Test filter = *.xfail_fail\n"
       "[==========] Running 1 test from 1 test case (20 jobs).\n"
       "[ RUN      ] DISABLED_SystemTestsXfail.xfail_fail\n"
       "file:(XX) Failure in test DISABLED_SystemTestsXfail.xfail_fail\n"
@@ -275,6 +284,7 @@ TEST_F(SystemTests, verify_xfail_fail_expect_to_fail_gtest_format) {
 
 TEST_F(SystemTests, verify_xfail_pass_expect_to_fail) {
   std::string expected =
+      "Note: Google Test filter = *.xfail_pass\n"
       "[==========] Running 1 test from 1 test case (20 jobs).\n"
       "[  FAILED  ] DISABLED_SystemTestsXfail.xfail_pass (XX ms)\n"
       "[==========] 1 test from 1 test case ran. (XX ms total)\n"
@@ -288,6 +298,7 @@ TEST_F(SystemTests, verify_xfail_pass_expect_to_fail) {
 
 TEST_F(SystemTests, verify_xfail_pass_expect_to_fail_gtest_format) {
   std::string expected =
+      "Note: Google Test filter = *.xfail_pass\n"
       "[==========] Running 1 test from 1 test case (20 jobs).\n"
       "[ RUN      ] DISABLED_SystemTestsXfail.xfail_pass\n"
       "[  FAILED  ] DISABLED_SystemTestsXfail.xfail_pass (XX ms)\n"
@@ -303,6 +314,7 @@ TEST_F(SystemTests, verify_xfail_pass_expect_to_fail_gtest_format) {
 
 TEST_F(SystemTests, verify_xfail_pass_expect_to_fail_color) {
   std::string expected =
+      "\x1B[0;33mNote: Google Test filter = *.xfail_pass\x1B[m\n"
       "\x1B[0;32m[==========]\x1B[m Running 1 test from 1 test case (20 jobs).\n"
       "\x1B[0;31m[  FAILED  ]\x1B[m DISABLED_SystemTestsXfail.xfail_pass (XX ms)\n"
       "\x1B[0;32m[==========]\x1B[m 1 test from 1 test case ran. (XX ms total)\n"
@@ -317,6 +329,7 @@ TEST_F(SystemTests, verify_xfail_pass_expect_to_fail_color) {
 
 TEST_F(SystemTests, verify_deathtest_pass) {
   std::string expected =
+      "Note: Google Test filter = *.DISABLED_death_pass\n"
       "[==========] Running 1 test from 1 test case (20 jobs).\n"
       "[    OK    ] SystemTestsDeathTest.DISABLED_death_pass (XX ms)\n"
       "[==========] 1 test from 1 test case ran. (XX ms total)\n"
@@ -326,6 +339,7 @@ TEST_F(SystemTests, verify_deathtest_pass) {
 
 TEST_F(SystemTests, verify_fail) {
   std::string expected =
+      "Note: Google Test filter = *.DISABLED_fail\n"
       "[==========] Running 1 test from 1 test case (20 jobs).\n"
       "[  FAILED  ] SystemTests.DISABLED_fail (XX ms)\n"
       "file:(XX) Failure in test SystemTests.DISABLED_fail\n"
@@ -344,6 +358,7 @@ TEST_F(SystemTests, verify_fail) {
 
 TEST_F(SystemTests, verify_fail_color) {
   std::string expected =
+      "\x1B[0;33mNote: Google Test filter = *.DISABLED_fail\x1B[m\n"
       "\x1B[0;32m[==========]\x1B[m Running 1 test from 1 test case (20 jobs).\n"
       "\x1B[0;31m[  FAILED  ]\x1B[m SystemTests.DISABLED_fail (XX ms)\n"
       "file:(XX) Failure in test SystemTests.DISABLED_fail\n"
@@ -363,6 +378,7 @@ TEST_F(SystemTests, verify_fail_color) {
 
 TEST_F(SystemTests, verify_fail_gtest_format) {
   std::string expected =
+      "Note: Google Test filter = *.DISABLED_fail\n"
       "[==========] Running 1 test from 1 test case (20 jobs).\n"
       "[ RUN      ] SystemTests.DISABLED_fail\n"
       "file:(XX) Failure in test SystemTests.DISABLED_fail\n"
@@ -383,6 +399,7 @@ TEST_F(SystemTests, verify_fail_gtest_format) {
 
 TEST_F(SystemTests, verify_fail_gtest_format_color) {
   std::string expected =
+      "\x1B[0;33mNote: Google Test filter = *.DISABLED_fail\x1B[m\n"
       "\x1B[0;32m[==========]\x1B[m Running 1 test from 1 test case (20 jobs).\n"
       "\x1B[0;32m[ RUN      ]\x1B[m SystemTests.DISABLED_fail\n"
       "file:(XX) Failure in test SystemTests.DISABLED_fail\n"
@@ -403,6 +420,7 @@ TEST_F(SystemTests, verify_fail_gtest_format_color) {
 
 TEST_F(SystemTests, verify_deathtest_fail) {
   std::string expected =
+      "Note: Google Test filter = *.DISABLED_death_fail\n"
       "[==========] Running 1 test from 1 test case (20 jobs).\n"
       "[  FAILED  ] SystemTestsDeathTest.DISABLED_death_fail (XX ms)\n"
       "file:(XX) Failure in test SystemTestsDeathTest.DISABLED_death_fail\n"
@@ -422,6 +440,7 @@ TEST_F(SystemTests, verify_deathtest_fail) {
 
 TEST_F(SystemTests, verify_crash) {
   std::string expected =
+      "Note: Google Test filter = *.DISABLED_crash\n"
       "[==========] Running 1 test from 1 test case (20 jobs).\n"
       "[  FAILED  ] SystemTests.DISABLED_crash (XX ms)\n"
 #if defined(__APPLE__)
@@ -440,6 +459,7 @@ TEST_F(SystemTests, verify_crash) {
 
 TEST_F(SystemTests, verify_warning_slow) {
   std::string expected =
+      "Note: Google Test filter = *.DISABLED_sleep5\n"
       "[==========] Running 1 test from 1 test case (20 jobs).\n"
       "[    OK    ] SystemTests.DISABLED_sleep5 (XX ms)\n"
       "[==========] 1 test from 1 test case ran. (XX ms total)\n"
@@ -454,6 +474,7 @@ TEST_F(SystemTests, verify_warning_slow) {
 
 TEST_F(SystemTests, verify_warning_slow_color) {
   std::string expected =
+      "\x1B[0;33mNote: Google Test filter = *.DISABLED_sleep5\x1B[m\n"
       "\x1B[0;32m[==========]\x1B[m Running 1 test from 1 test case (20 jobs).\n"
       "\x1B[0;32m[    OK    ]\x1B[m SystemTests.DISABLED_sleep5 (XX ms)\n"
       "\x1B[0;32m[==========]\x1B[m 1 test from 1 test case ran. (XX ms total)\n"
@@ -469,6 +490,7 @@ TEST_F(SystemTests, verify_warning_slow_color) {
 
 TEST_F(SystemTests, verify_timeout) {
   std::string expected =
+      "Note: Google Test filter = *.DISABLED_sleep_forever\n"
       "[==========] Running 1 test from 1 test case (20 jobs).\n"
       "[ TIMEOUT  ] SystemTests.DISABLED_sleep_forever (XX ms)\n"
       "SystemTests.DISABLED_sleep_forever killed because of timeout at XX ms.\n"
@@ -486,6 +508,7 @@ TEST_F(SystemTests, verify_timeout) {
 // another test is marked as slow.
 TEST_F(SystemTests, verify_timeout_not_slow) {
   std::string expected =
+      "Note: Google Test filter = *.DISABLED_sleep*\n"
       "[==========] Running 2 tests from 1 test case (20 jobs).\n"
       "[    OK    ] SystemTests.DISABLED_sleep5 (XX ms)\n"
       "[ TIMEOUT  ] SystemTests.DISABLED_sleep_forever (XX ms)\n"
@@ -506,6 +529,7 @@ TEST_F(SystemTests, verify_timeout_not_slow) {
 
 TEST_F(SystemTests, verify_timeout_color) {
   std::string expected =
+      "\x1B[0;33mNote: Google Test filter = *.DISABLED_sleep_forever\x1B[m\n"
       "\x1B[0;32m[==========]\x1B[m Running 1 test from 1 test case (20 jobs).\n"
       "\x1B[0;31m[ TIMEOUT  ]\x1B[m SystemTests.DISABLED_sleep_forever (XX ms)\n"
       "SystemTests.DISABLED_sleep_forever killed because of timeout at XX ms.\n"
@@ -522,6 +546,7 @@ TEST_F(SystemTests, verify_timeout_color) {
 
 TEST_F(SystemTests, verify_order_isolated) {
   std::string expected =
+      "Note: Google Test filter = *.DISABLED_order_*\n"
       "[==========] Running 3 tests from 1 test case (20 jobs).\n"
       "[    OK    ] SystemTests.DISABLED_order_3 (XX ms)\n"
       "[    OK    ] SystemTests.DISABLED_order_2 (XX ms)\n"
@@ -534,7 +559,7 @@ TEST_F(SystemTests, verify_order_isolated) {
 TEST_F(SystemTests, verify_order_not_isolated) {
   std::string expected =
       "Note: Google Test filter = *.DISABLED_order_*\n"
-      "[==========] Running 3 tests from 1 test case.\n"
+      "[==========] Running 3 tests from 1 test suite.\n"
       "[----------] Global test environment set-up.\n"
       "[----------] 3 tests from SystemTests\n"
       "[ RUN      ] SystemTests.DISABLED_order_1\n"
@@ -546,7 +571,7 @@ TEST_F(SystemTests, verify_order_not_isolated) {
       "[----------] 3 tests from SystemTests (XX ms total)\n"
       "\n"
       "[----------] Global test environment tear-down\n"
-      "[==========] 3 tests from 1 test case ran. (XX ms total)\n"
+      "[==========] 3 tests from 1 test suite ran. (XX ms total)\n"
       "[  PASSED  ] 3 tests.\n";
   ASSERT_NO_FATAL_FAILURE(
       Verify("*.DISABLED_order_*", expected, 0, std::vector<const char*>{"--no_isolate"}));
@@ -598,6 +623,7 @@ TEST_F(SystemTests, verify_error_order) {
 
 TEST_F(SystemTests, verify_job_count_single) {
   std::string expected =
+      "Note: Google Test filter = *.DISABLED_job_*\n"
       "[==========] Running 3 tests from 1 test case (1 job).\n"
       "[    OK    ] SystemTests.DISABLED_job_1 (XX ms)\n"
       "[    OK    ] SystemTests.DISABLED_job_2 (XX ms)\n"
@@ -609,6 +635,7 @@ TEST_F(SystemTests, verify_job_count_single) {
 
 TEST_F(SystemTests, verify_job_count_multiple) {
   std::string expected =
+      "Note: Google Test filter = *.DISABLED_job_*\n"
       "[==========] Running 3 tests from 1 test case (2 jobs).\n"
       "[    OK    ] SystemTests.DISABLED_job_2 (XX ms)\n"
       "[    OK    ] SystemTests.DISABLED_job_1 (XX ms)\n"
@@ -655,6 +682,7 @@ TEST_F(SystemTests, verify_help_color) {
 
 TEST_F(SystemTests, verify_repeat) {
   std::string expected =
+      "Note: Google Test filter = *.DISABLED_order_*\n"
       "[==========] Running 3 tests from 1 test case (20 jobs).\n"
       "[    OK    ] SystemTests.DISABLED_order_3 (XX ms)\n"
       "[    OK    ] SystemTests.DISABLED_order_2 (XX ms)\n"
@@ -830,6 +858,7 @@ TEST_F(SystemTests, verify_disabled_not_displayed_with_no_tests) {
   ExecAndCapture(args);
   ASSERT_EQ(0, exitcode_);
   std::string expected =
+      "Note: Google Test filter = NO_TEST_FILTER_MATCH\n"
       "[==========] Running 0 tests from 0 test cases (2 jobs).\n"
       "[==========] 0 tests from 0 test cases ran. (XX ms total)\n"
       "[   PASS   ] 0 tests.\n";
@@ -842,6 +871,7 @@ TEST_F(SystemTests, verify_disabled) {
   ExecAndCapture(args);
   ASSERT_EQ(0, exitcode_) << "Test output:\n" << raw_output_;
   std::string expected =
+      "Note: Google Test filter = *always_pass\n"
       "[==========] Running 1 test from 1 test case (2 jobs).\n"
       "[    OK    ] SystemTests.always_pass (XX ms)\n"
       "[==========] 1 test from 1 test case ran. (XX ms total)\n"
@@ -858,6 +888,7 @@ TEST_F(SystemTests, verify_disabled_color) {
   ExecAndCapture(args);
   ASSERT_EQ(0, exitcode_) << "Test output:\n" << raw_output_;
   std::string expected =
+      "\x1B[0;33mNote: Google Test filter = *always_pass\x1B[m\n"
       "\x1B[0;32m[==========]\x1B[m Running 1 test from 1 test case (2 jobs).\n"
       "\x1B[0;32m[    OK    ]\x1B[m SystemTests.always_pass (XX ms)\n"
       "\x1B[0;32m[==========]\x1B[m 1 test from 1 test case ran. (XX ms total)\n"
@@ -895,6 +926,7 @@ TEST_F(SystemTests, verify_SIGINT) {
   int status;
   ASSERT_EQ(pid_, TEMP_FAILURE_RETRY(waitpid(pid_, &status, 0))) << "Test output:\n" << output;
   ASSERT_EQ(
+      "Note: Google Test filter = *.DISABLED_job*\n"
       "[==========] Running 3 tests from 1 test case (20 jobs).\n"
       "Terminating due to signal...\n",
       output);
@@ -928,6 +960,7 @@ TEST_F(SystemTests, verify_SIGQUIT) {
   ASSERT_EQ(pid_, TEMP_FAILURE_RETRY(waitpid(pid_, &status, 0))) << "Test output:\n" << raw_output_;
   SanitizeOutput();
   ASSERT_EQ(
+      "Note: Google Test filter = *.DISABLED_job*\n"
       "[==========] Running 3 tests from 1 test case (20 jobs).\n"
       "List of current running tests:\n"
       "  SystemTests.DISABLED_job_1 (elapsed time XX ms)\n"
@@ -969,6 +1002,7 @@ TEST_F(SystemTests, verify_SIGQUIT_after_test_finish) {
   ASSERT_EQ(pid_, TEMP_FAILURE_RETRY(waitpid(pid_, &status, 0))) << "Test output:\n" << raw_output_;
   SanitizeOutput();
   ASSERT_EQ(
+      "Note: Google Test filter = *.DISABLED_sigquit_*\n"
       "[==========] Running 3 tests from 1 test case (20 jobs).\n"
       "[    OK    ] SystemTests.DISABLED_sigquit_no_sleep (XX ms)\n"
       "List of current running tests:\n"
