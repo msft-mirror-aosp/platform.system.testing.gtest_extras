@@ -31,6 +31,7 @@ enum TestResult : uint8_t {
   TEST_FAIL,
   TEST_XFAIL,
   TEST_TIMEOUT,
+  TEST_SKIPPED,
 };
 
 class Test {
@@ -48,6 +49,8 @@ class Test {
   void ReadUntilClosed();
 
   void CloseFd();
+
+  void SetResultFromOutput();
 
   void AppendOutput(std::string& output) { output_ += output; }
   void AppendOutput(const char* output) { output_ += output; }
