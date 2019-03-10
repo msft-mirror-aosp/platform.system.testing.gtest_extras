@@ -234,6 +234,115 @@ TEST_F(SystemTests, verify_pass_gtest_format_color) {
                                  std::vector<const char*>{"--gtest_format", "--gtest_color=yes"}));
 }
 
+TEST_F(SystemTests, verify_skip) {
+  std::string expected =
+      "Note: Google Test filter = *.DISABLED_skip_no_message\n"
+      "[==========] Running 1 test from 1 test case (20 jobs).\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_no_message (XX ms)\n"
+      "[==========] 1 test from 1 test case ran. (XX ms total)\n"
+      "[   PASS   ] 0 tests.\n"
+      "[  SKIPPED ] 1 test, listed below:\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_no_message\n";
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_no_message", expected, 0));
+}
+
+TEST_F(SystemTests, verify_skip_with_message) {
+  std::string expected =
+      "Note: Google Test filter = *.DISABLED_skip_with_message\n"
+      "[==========] Running 1 test from 1 test case (20 jobs).\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_with_message (XX ms)\n"
+      "This is a skip message\n"
+      "[==========] 1 test from 1 test case ran. (XX ms total)\n"
+      "[   PASS   ] 0 tests.\n"
+      "[  SKIPPED ] 1 test, listed below:\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_with_message\n";
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_with_message", expected, 0));
+}
+
+TEST_F(SystemTests, verify_skip_no_print_time) {
+  std::string expected =
+      "Note: Google Test filter = *.DISABLED_skip_no_message\n"
+      "[==========] Running 1 test from 1 test case (20 jobs).\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_no_message\n"
+      "[==========] 1 test from 1 test case ran. (XX ms total)\n"
+      "[   PASS   ] 0 tests.\n"
+      "[  SKIPPED ] 1 test, listed below:\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_no_message\n";
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_no_message", expected, 0,
+                                 std::vector<const char*>{"--gtest_print_time=0"}));
+}
+
+TEST_F(SystemTests, verify_skip_color) {
+  std::string expected =
+      "\x1B[0;33mNote: Google Test filter = *.DISABLED_skip_no_message\x1B[m\n"
+      "\x1B[0;32m[==========]\x1B[m Running 1 test from 1 test case (20 jobs).\n"
+      "\x1B[0;32m[  SKIPPED ]\x1B[m SystemTests.DISABLED_skip_no_message (XX ms)\n"
+      "\x1B[0;32m[==========]\x1B[m 1 test from 1 test case ran. (XX ms total)\n"
+      "\x1B[0;32m[   PASS   ]\x1B[m 0 tests.\n"
+      "\x1B[0;32m[  SKIPPED ]\x1B[m 1 test, listed below:\n"
+      "\x1B[0;32m[  SKIPPED ]\x1B[m SystemTests.DISABLED_skip_no_message\n";
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_no_message", expected, 0,
+                                 std::vector<const char*>{"--gtest_color=yes"}));
+}
+
+TEST_F(SystemTests, verify_skip_gtest_format) {
+  std::string expected =
+      "Note: Google Test filter = *.DISABLED_skip_no_message\n"
+      "[==========] Running 1 test from 1 test case (20 jobs).\n"
+      "[ RUN      ] SystemTests.DISABLED_skip_no_message\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_no_message (XX ms)\n"
+      "[==========] 1 test from 1 test case ran. (XX ms total)\n"
+      "[   PASS   ] 0 tests.\n"
+      "[  SKIPPED ] 1 test, listed below:\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_no_message\n";
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_no_message", expected, 0,
+                                 std::vector<const char*>{"--gtest_format"}));
+}
+
+TEST_F(SystemTests, verify_skip_gtest_format_with_message) {
+  std::string expected =
+      "Note: Google Test filter = *.DISABLED_skip_with_message\n"
+      "[==========] Running 1 test from 1 test case (20 jobs).\n"
+      "[ RUN      ] SystemTests.DISABLED_skip_with_message\n"
+      "This is a skip message\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_with_message (XX ms)\n"
+      "[==========] 1 test from 1 test case ran. (XX ms total)\n"
+      "[   PASS   ] 0 tests.\n"
+      "[  SKIPPED ] 1 test, listed below:\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_with_message\n";
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_with_message", expected, 0,
+                                 std::vector<const char*>{"--gtest_format"}));
+}
+
+TEST_F(SystemTests, verify_skip_gtest_format_no_print_time) {
+  std::string expected =
+      "Note: Google Test filter = *.DISABLED_skip_no_message\n"
+      "[==========] Running 1 test from 1 test case (20 jobs).\n"
+      "[ RUN      ] SystemTests.DISABLED_skip_no_message\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_no_message\n"
+      "[==========] 1 test from 1 test case ran. (XX ms total)\n"
+      "[   PASS   ] 0 tests.\n"
+      "[  SKIPPED ] 1 test, listed below:\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_no_message\n";
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("*.DISABLED_skip_no_message", expected, 0,
+             std::vector<const char*>{"--gtest_format", "--gtest_print_time=0"}));
+}
+
+TEST_F(SystemTests, verify_skip_gtest_format_color) {
+  std::string expected =
+      "\x1B[0;33mNote: Google Test filter = *.DISABLED_skip_no_message\x1B[m\n"
+      "\x1B[0;32m[==========]\x1B[m Running 1 test from 1 test case (20 jobs).\n"
+      "\x1B[0;32m[ RUN      ]\x1B[m SystemTests.DISABLED_skip_no_message\n"
+      "\x1B[0;32m[  SKIPPED ]\x1B[m SystemTests.DISABLED_skip_no_message (XX ms)\n"
+      "\x1B[0;32m[==========]\x1B[m 1 test from 1 test case ran. (XX ms total)\n"
+      "\x1B[0;32m[   PASS   ]\x1B[m 0 tests.\n"
+      "\x1B[0;32m[  SKIPPED ]\x1B[m 1 test, listed below:\n"
+      "\x1B[0;32m[  SKIPPED ]\x1B[m SystemTests.DISABLED_skip_no_message\n";
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_no_message", expected, 0,
+                                 std::vector<const char*>{"--gtest_format", "--gtest_color=yes"}));
+}
+
 TEST_F(SystemTests, verify_xfail_fail_expect_to_fail) {
   std::string expected =
       "Note: Google Test filter = *.xfail_fail\n"
@@ -588,7 +697,7 @@ TEST_F(SystemTests, verify_fail_ge10) {
   ASSERT_NE(0, exitcode_);
 }
 
-TEST_F(SystemTests, verify_error_order) {
+TEST_F(SystemTests, verify_title_order) {
   RunTest("*.DISABLED_all_*",
           std::vector<const char*>{"--slow_threshold_ms=2000", "--deadline_threshold_ms=4000"});
   // Verify the order of the output messages.
@@ -605,6 +714,9 @@ TEST_F(SystemTests, verify_error_order) {
   ASSERT_FALSE(footer.empty()) << "Test output:\n" << raw_output_;
   ASSERT_EQ(
       "[   PASS   ] 4 tests.\n"
+      "[  SKIPPED ] 2 tests, listed below:\n"
+      "[  SKIPPED ] SystemTests.DISABLED_all_skip_1\n"
+      "[  SKIPPED ] SystemTests.DISABLED_all_skip_2\n"
       "[   SLOW   ] 2 tests slow, listed below:\n"
       "[   SLOW   ] SystemTests.DISABLED_all_slow_1 (XX ms, exceeded 2000 ms)\n"
       "[   SLOW   ] SystemTests.DISABLED_all_slow_2 (XX ms, exceeded 2000 ms)\n"
@@ -1156,6 +1268,14 @@ TEST_F(SystemTests, DISABLED_all_pass_1) {}
 
 TEST_F(SystemTests, DISABLED_all_pass_2) {}
 
+TEST_F(SystemTests, DISABLED_all_skip_1) {
+  GTEST_SKIP();
+}
+
+TEST_F(SystemTests, DISABLED_all_skip_2) {
+  GTEST_SKIP() << "Skip message present";
+}
+
 TEST_F(SystemTests, DISABLED_all_slow_1) {
   sleep(3);
 }
@@ -1190,6 +1310,14 @@ TEST_F(SystemTests, DISABLED_job_2) {
 
 TEST_F(SystemTests, DISABLED_job_3) {
   sleep(4);
+}
+
+TEST_F(SystemTests, DISABLED_skip_no_message) {
+  GTEST_SKIP();
+}
+
+TEST_F(SystemTests, DISABLED_skip_with_message) {
+  GTEST_SKIP() << "This is a skip message";
 }
 
 class DISABLED_SystemTestsXfail : public ::testing::Test {};
