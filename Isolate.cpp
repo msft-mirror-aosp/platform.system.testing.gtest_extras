@@ -267,7 +267,9 @@ size_t Isolate::CheckTestsFinished() {
           test->AppendOutput(output);
           test->set_result(TEST_FAIL);
         } else {
-          test->set_result(TEST_PASS);
+          // Set the result based on the output, since skipped tests and
+          // passing tests have the same exit status.
+          test->SetResultFromOutput();
         }
       }
     } else if (test->result() == TEST_TIMEOUT) {
@@ -307,6 +309,9 @@ size_t Isolate::CheckTestsFinished() {
         break;
       case TEST_XFAIL:
         total_xfail_tests_++;
+        break;
+      case TEST_SKIPPED:
+        total_skipped_tests_++;
         break;
       case TEST_NONE:
         LOG(FATAL) << "Test result is TEST_NONE, this should not be possible.";
@@ -381,6 +386,7 @@ void Isolate::RunAllTests() {
   total_xfail_tests_ = 0;
   total_timeout_tests_ = 0;
   total_slow_tests_ = 0;
+  total_skipped_tests_ = 0;
 
   running_by_test_index_.clear();
 
@@ -415,7 +421,11 @@ void Isolate::RunAllTests() {
 
 void Isolate::PrintResults(size_t total, const ResultsType& results, std::string* footer) {
   ColoredPrintf(results.color, results.prefix);
-  printf(" %s %s, listed below:\n", PluralizeString(total, " test").c_str(), results.list_desc);
+  if (results.list_desc != nullptr) {
+    printf(" %s %s, listed below:\n", PluralizeString(total, " test").c_str(), results.list_desc);
+  } else {
+    printf(" %s, listed below:\n", PluralizeString(total, " test").c_str());
+  }
   for (const auto& entry : finished_) {
     const Test* test = entry.second.get();
     if (results.match_func(*test)) {
@@ -427,6 +437,11 @@ void Isolate::PrintResults(size_t total, const ResultsType& results, std::string
       printf("\n");
     }
   }
+
+  if (results.title == nullptr) {
+    return;
+  }
+
   if (total < 10) {
     *footer += ' ';
   }
@@ -477,6 +492,15 @@ Isolate::ResultsType Isolate::TimeoutResults = {
         },
 };
 
+Isolate::ResultsType Isolate::SkippedResults = {
+    .color = COLOR_GREEN,
+    .prefix = "[  SKIPPED ]",
+    .list_desc = nullptr,
+    .title = nullptr,
+    .match_func = [](const Test& test) { return test.result() == TEST_SKIPPED; },
+    .print_func = nullptr,
+};
+
 void Isolate::PrintFooter(uint64_t elapsed_time_ns) {
   ColoredPrintf(COLOR_GREEN, "[==========]");
   printf(" %s from %s ran. (%" PRId64 " ms total)\n",
@@ -491,6 +515,12 @@ void Isolate::PrintFooter(uint64_t elapsed_time_ns) {
   printf("\n");
 
   std::string footer;
+
+  // Tests that were skipped.
+  if (total_skipped_tests_ != 0) {
+    PrintResults(total_skipped_tests_, SkippedResults, &footer);
+  }
+
   // Tests that ran slow.
   if (total_slow_tests_ != 0) {
     PrintResults(total_slow_tests_, SlowResults, &footer);
@@ -699,7 +729,7 @@ int Isolate::Run() {
       WriteXmlResults(time_ns, start_time);
     }
 
-    if (total_pass_tests_ + total_xfail_tests_ != tests_.size()) {
+    if (total_pass_tests_ + total_skipped_tests_ + total_xfail_tests_ != tests_.size()) {
       exit_code = 1;
     }
   }

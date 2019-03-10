@@ -90,6 +90,7 @@ class Isolate {
   size_t total_xfail_tests_;
   size_t total_timeout_tests_;
   size_t total_slow_tests_;
+  size_t total_skipped_tests_;
   size_t cur_test_index_ = 0;
 
   uint64_t slow_threshold_ns_;
@@ -110,6 +111,7 @@ class Isolate {
   static ResultsType XpassFailResults;
   static ResultsType FailResults;
   static ResultsType TimeoutResults;
+  static ResultsType SkippedResults;
 };
 
 }  // namespace gtest_extras

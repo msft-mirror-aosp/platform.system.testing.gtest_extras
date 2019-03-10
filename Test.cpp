@@ -59,6 +59,9 @@ void Test::PrintGtestFormat() {
     case TEST_XFAIL:
       ColoredPrintf(COLOR_GREEN, "[       OK ]");
       break;
+    case TEST_SKIPPED:
+      ColoredPrintf(COLOR_GREEN, "[  SKIPPED ]");
+      break;
     default:
       ColoredPrintf(COLOR_RED, "[  FAILED  ]");
       break;
@@ -88,6 +91,9 @@ void Test::Print(bool gtest_format) {
       break;
     case TEST_TIMEOUT:
       ColoredPrintf(COLOR_RED, "[ TIMEOUT  ]");
+      break;
+    case TEST_SKIPPED:
+      ColoredPrintf(COLOR_GREEN, "[  SKIPPED ]");
       break;
     case TEST_NONE:
       LOG(FATAL) << "Test result is TEST_NONE, this should not be possible.";
@@ -136,6 +142,33 @@ void Test::ReadUntilClosed() {
       break;
     }
   }
+}
+
+void Test::SetResultFromOutput() {
+  result_ = TEST_PASS;
+
+  // Need to parse the output to determine if this test was skipped.
+  // Format of a skipped test:
+  //   <filename>:(<line_number>) Failure in test <testname>
+  //   Skipped
+  //   <Skip Message>
+  size_t line_end = output_.find('\n');
+  if (line_end == std::string::npos) {
+    return;
+  }
+  std::string second_line(output_.substr(line_end, 9));
+  if (output_.substr(line_end, 9) != "\nSkipped\n") {
+    return;
+  }
+  size_t failure_index = output_.find(" Failure in test ");
+  if (failure_index == std::string::npos || failure_index >= line_end) {
+    return;
+  }
+
+  // Only leave the output from the skip message.
+  output_ = output_.substr(line_end + 9);
+
+  result_ = TEST_SKIPPED;
 }
 
 }  // namespace gtest_extras
