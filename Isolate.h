@@ -81,7 +81,7 @@ class Isolate {
   const Options& options_;
   const std::vector<const char*>& child_args_;
 
-  size_t total_cases_ = 0;
+  size_t total_suites_ = 0;
   size_t total_tests_ = 0;
   size_t total_disable_tests_ = 0;
   size_t total_pass_tests_;
