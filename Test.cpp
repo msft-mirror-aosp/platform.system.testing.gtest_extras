@@ -33,9 +33,9 @@ namespace android {
 namespace gtest_extras {
 
 Test::Test(std::tuple<std::string, std::string>& test, size_t index, size_t run_index, int fd)
-    : case_name_(std::get<0>(test)),
+    : suite_name_(std::get<0>(test)),
       test_name_(std::get<1>(test)),
-      name_(case_name_ + test_name_),
+      name_(suite_name_ + test_name_),
       test_index_(index),
       run_index_(run_index),
       fd_(fd),
@@ -90,7 +90,7 @@ void Test::Print(bool gtest_format) {
       ColoredPrintf(COLOR_RED, "[  FAILED  ]");
       break;
     case TEST_TIMEOUT:
-      ColoredPrintf(COLOR_RED, "[ TIMEOUT  ]");
+      ColoredPrintf(COLOR_RED, "[  TIMEOUT ]");
       break;
     case TEST_SKIPPED:
       ColoredPrintf(COLOR_GREEN, "[  SKIPPED ]");
