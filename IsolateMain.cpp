@@ -165,12 +165,6 @@ int IsolateMain(int argc, char** argv, char**) {
   ::testing::GTEST_FLAG(color) = options.color();
   ::testing::GTEST_FLAG(print_time) = options.print_time();
 
-  if (!options.filter().empty()) {
-    android::gtest_extras::ColoredPrintf(android::gtest_extras::COLOR_YELLOW,
-                                         "Note: Google Test filter = %s", options.filter().c_str());
-    printf("\n");
-  }
-
   android::gtest_extras::Isolate isolate(options, child_args);
   return isolate.Run();
 }
