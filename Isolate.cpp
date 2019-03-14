@@ -98,6 +98,13 @@ void Isolate::EnumerateTests() {
     PLOG(FATAL) << "Unexpected failure from popen";
   }
 
+  size_t total_shards = options_.total_shards();
+  bool sharded = total_shards > 1;
+  size_t test_count = 0;
+  if (sharded) {
+    test_count = options_.shard_index() + 1;
+  }
+
   bool skip_until_next_suite = false;
   std::string suite_name;
   char* buffer = nullptr;
@@ -133,13 +140,18 @@ void Isolate::EnumerateTests() {
           test_name.resize(test_name.size() - 1);
         }
         if (options_.allow_disabled_tests() || !android::base::StartsWith(test_name, "DISABLED_")) {
-          tests_.push_back(std::make_tuple(suite_name, test_name));
-          total_tests_++;
-          if (new_suite) {
-            // Only increment the number of suites when we find at least one test
-            // for the suites.
-            total_suites_++;
-            new_suite = false;
+          if (!sharded || --test_count == 0) {
+            tests_.push_back(std::make_tuple(suite_name, test_name));
+            total_tests_++;
+            if (new_suite) {
+              // Only increment the number of suites when we find at least one test
+              // for the suites.
+              total_suites_++;
+              new_suite = false;
+            }
+            if (sharded) {
+              test_count = total_shards;
+            }
           }
         } else {
           total_disable_tests_++;
@@ -696,6 +708,29 @@ void Isolate::WriteXmlResults(uint64_t elapsed_time_ns, time_t start_time) {
 int Isolate::Run() {
   slow_threshold_ns_ = options_.slow_threshold_ms() * kNsPerMs;
   deadline_threshold_ns_ = options_.deadline_threshold_ms() * kNsPerMs;
+
+  bool sharding_enabled = options_.total_shards() > 1;
+  if (sharding_enabled &&
+      (options_.shard_index() < 0 || options_.shard_index() >= options_.total_shards())) {
+    ColoredPrintf(COLOR_RED,
+                  "Invalid environment variables: we require 0 <= GTEST_SHARD_INDEX < "
+                  "GTEST_TOTAL_SHARDS, but you have GTEST_SHARD_INDEX=%" PRId64
+                  ", GTEST_TOTAL_SHARDS=%" PRId64,
+                  options_.shard_index(), options_.total_shards());
+    printf("\n");
+    return 1;
+  }
+
+  if (!options_.filter().empty()) {
+    ColoredPrintf(COLOR_YELLOW, "Note: Google Test filter = %s", options_.filter().c_str());
+    printf("\n");
+  }
+
+  if (sharding_enabled) {
+    ColoredPrintf(COLOR_YELLOW, "Note: This is test shard %" PRId64 " of %" PRId64,
+                  options_.shard_index() + 1, options_.total_shards());
+    printf("\n");
+  }
 
   EnumerateTests();
 
