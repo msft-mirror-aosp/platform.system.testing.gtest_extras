@@ -41,8 +41,8 @@ constexpr uint64_t kDefaultDeadlineThresholdMs = 90000;
 constexpr uint64_t kDefaultSlowThresholdMs = 2000;
 
 const std::unordered_map<std::string, Options::ArgInfo> Options::kArgs = {
-    {"deadline_threshold_ms", {FLAG_REQUIRES_VALUE, &Options::SetThreshold}},
-    {"slow_threshold_ms", {FLAG_REQUIRES_VALUE, &Options::SetThreshold}},
+    {"deadline_threshold_ms", {FLAG_REQUIRES_VALUE, &Options::SetNumeric}},
+    {"slow_threshold_ms", {FLAG_REQUIRES_VALUE, &Options::SetNumeric}},
     {"gtest_format", {FLAG_NONE, &Options::SetBool}},
     {"gtest_list_tests", {FLAG_NONE, &Options::SetBool}},
     {"gtest_filter", {FLAG_ENVIRONMENT_VARIABLE | FLAG_REQUIRES_VALUE, &Options::SetString}},
@@ -66,6 +66,10 @@ const std::unordered_map<std::string, Options::ArgInfo> Options::kArgs = {
     {"gtest_shuffle", {FLAG_ENVIRONMENT_VARIABLE | FLAG_INCOMPATIBLE, nullptr}},
     {"gtest_stream_result_to", {FLAG_ENVIRONMENT_VARIABLE | FLAG_INCOMPATIBLE, nullptr}},
     {"gtest_throw_on_failure", {FLAG_ENVIRONMENT_VARIABLE | FLAG_INCOMPATIBLE, nullptr}},
+    {"gtest_shard_index",
+     {FLAG_ENVIRONMENT_VARIABLE | FLAG_REQUIRES_VALUE, &Options::SetNumericEnvOnly}},
+    {"gtest_total_shards",
+     {FLAG_ENVIRONMENT_VARIABLE | FLAG_REQUIRES_VALUE, &Options::SetNumericEnvOnly}},
 };
 
 static void PrintError(const std::string& arg, std::string msg, bool from_env) {
@@ -108,13 +112,25 @@ bool Options::SetPrintTime(const std::string&, const std::string& value, bool) {
   return true;
 }
 
-bool Options::SetThreshold(const std::string& arg, const std::string& value, bool from_env) {
-  uint64_t* numeric = &thresholds_.find(arg)->second;
+bool Options::SetNumeric(const std::string& arg, const std::string& value, bool from_env) {
+  uint64_t* numeric = &numerics_.find(arg)->second;
   if (!GetNumeric<uint64_t>(arg.c_str(), value.c_str(), numeric, from_env)) {
     return false;
   }
   if (*numeric == 0) {
     PrintError(arg, "requires a number greater than zero.", from_env);
+    return false;
+  }
+  return true;
+}
+
+bool Options::SetNumericEnvOnly(const std::string& arg, const std::string& value, bool from_env) {
+  if (!from_env) {
+    PrintError(arg, "is only supported as an environment variable.", false);
+    return false;
+  }
+  uint64_t* numeric = &numerics_.find(arg)->second;
+  if (!GetNumeric<uint64_t>(arg.c_str(), value.c_str(), numeric, from_env)) {
     return false;
   }
   return true;
@@ -198,9 +214,11 @@ bool Options::Process(const std::vector<const char*>& args, std::vector<const ch
   // Initialize the variables.
   job_count_ = static_cast<size_t>(sysconf(_SC_NPROCESSORS_ONLN));
   num_iterations_ = ::testing::GTEST_FLAG(repeat);
-  thresholds_.clear();
-  thresholds_["deadline_threshold_ms"] = kDefaultDeadlineThresholdMs;
-  thresholds_["slow_threshold_ms"] = kDefaultSlowThresholdMs;
+  numerics_.clear();
+  numerics_["deadline_threshold_ms"] = kDefaultDeadlineThresholdMs;
+  numerics_["slow_threshold_ms"] = kDefaultSlowThresholdMs;
+  numerics_["gtest_shard_index"] = 0;
+  numerics_["gtest_total_shards"] = 0;
   strings_.clear();
   strings_["gtest_color"] = ::testing::GTEST_FLAG(color);
   strings_["xml_file"] = ::testing::GTEST_FLAG(output);

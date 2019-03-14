@@ -61,6 +61,8 @@ class SystemTests : public ::testing::Test {
   void Exec(std::vector<const char*> args);
   void ExecAndCapture(std::vector<const char*> args);
   void RunTest(const std::string& test_name, std::vector<const char*> extra_args = {});
+  void RunTestCaptureFooter(const std::string& test_name, std::string* footer,
+                            std::vector<const char*> extra_args = {});
   void Verify(const std::string& test_name, const std::string& expected_output,
               int expected_exitcode, std::vector<const char*> extra_args = {});
 
@@ -156,9 +158,27 @@ void SystemTests::RunTest(const std::string& test_name, std::vector<const char*>
   ExecAndCapture(args);
 }
 
+void SystemTests::RunTestCaptureFooter(const std::string& test_name, std::string* footer,
+                                       std::vector<const char*> extra_args) {
+  ASSERT_NO_FATAL_FAILURE(RunTest(test_name, extra_args));
+
+  // Verify the order of the output messages.
+  std::stringstream stream(sanitized_output_);
+  std::string line;
+  footer->clear();
+  while (std::getline(stream, line, '\n')) {
+    if (!footer->empty()) {
+      *footer += line + '\n';
+    } else if (android::base::StartsWith(line, "[  PASSED  ] ")) {
+      *footer = line + '\n';
+    }
+  }
+  ASSERT_FALSE(footer->empty()) << "Test output:\n" << raw_output_;
+}
+
 void SystemTests::Verify(const std::string& test_name, const std::string& expected_output,
                          int expected_exitcode, std::vector<const char*> extra_args) {
-  RunTest(test_name, extra_args);
+  ASSERT_NO_FATAL_FAILURE(RunTest(test_name, extra_args));
   ASSERT_EQ(expected_exitcode, exitcode_) << "Test output:\n" << raw_output_;
   if (!expected_output.empty()) {
     ASSERT_EQ(expected_output, sanitized_output_);
@@ -687,7 +707,7 @@ TEST_F(SystemTests, verify_order_not_isolated) {
 }
 
 TEST_F(SystemTests, verify_fail_ge10) {
-  RunTest("*.DISABLED_fail_*");
+  ASSERT_NO_FATAL_FAILURE(RunTest("*.DISABLED_fail_*"));
   // Verify the failed output at the end has no space in front.
   std::regex regex("\\n.*\\d+ FAILED TESTS\\n");
   std::cmatch match;
@@ -698,20 +718,11 @@ TEST_F(SystemTests, verify_fail_ge10) {
 }
 
 TEST_F(SystemTests, verify_title_order) {
-  RunTest("*.DISABLED_all_*",
-          std::vector<const char*>{"--slow_threshold_ms=2000", "--deadline_threshold_ms=4000"});
-  // Verify the order of the output messages.
-  std::stringstream stream(sanitized_output_);
-  std::string line;
   std::string footer;
-  while (std::getline(stream, line, '\n')) {
-    if (!footer.empty()) {
-      footer += line + '\n';
-    } else if (line == "[  PASSED  ] 4 tests.") {
-      footer = line + '\n';
-    }
-  }
-  ASSERT_FALSE(footer.empty()) << "Test output:\n" << raw_output_;
+  ASSERT_NO_FATAL_FAILURE(RunTestCaptureFooter(
+      "*.DISABLED_all_*", &footer,
+      std::vector<const char*>{"--slow_threshold_ms=2000", "--deadline_threshold_ms=4000"}));
+
   ASSERT_EQ(
       "[  PASSED  ] 4 tests.\n"
       "[  SKIPPED ] 2 tests, listed below:\n"
@@ -763,7 +774,7 @@ TEST_F(SystemTests, verify_help) {
   // the isolated test run, and for the gtest data.
   std::vector<const char*> help_args{"-h", "--help"};
   for (auto arg : help_args) {
-    RunTest("*.DISABLED_pass", std::vector<const char*>{arg});
+    ASSERT_NO_FATAL_FAILURE(RunTest("*.DISABLED_pass", std::vector<const char*>{arg}));
     ASSERT_EQ(0, exitcode_) << "Test output:\n" << raw_output_;
     // First find something from the isolation help.
     std::size_t isolation_help = sanitized_output_.find("In isolation mode,");
@@ -779,7 +790,8 @@ TEST_F(SystemTests, verify_help_color) {
   // Verify that the color option does change the help display.
   std::vector<const char*> help_args{"-h", "--help"};
   for (auto arg : help_args) {
-    RunTest("*.DISABLED_pass", std::vector<const char*>{arg, "--gtest_color=yes"});
+    ASSERT_NO_FATAL_FAILURE(
+        RunTest("*.DISABLED_pass", std::vector<const char*>{arg, "--gtest_color=yes"}));
     ASSERT_EQ(0, exitcode_) << "Test output:\n" << raw_output_;
     // First find something from the isolation help that is in color.
     std::size_t isolation_help =
@@ -888,7 +900,7 @@ TEST_F(SystemTests, verify_xml) {
   close(tf.fd);
   tmp_arg += tf.path;
 
-  RunTest("*.DISABLED_xml_*", std::vector<const char*>{tmp_arg.c_str()});
+  ASSERT_NO_FATAL_FAILURE(RunTest("*.DISABLED_xml_*", std::vector<const char*>{tmp_arg.c_str()}));
   ASSERT_EQ(1, exitcode_) << "Test output:\n" << raw_output_;
 
   // Check that the xml file exists.
@@ -967,7 +979,7 @@ TEST_F(SystemTests, verify_xml) {
 TEST_F(SystemTests, verify_disabled_not_displayed_with_no_tests) {
   std::vector<const char*> args{"--gtest_filter=NO_TEST_FILTER_MATCH", "-j2"};
 
-  ExecAndCapture(args);
+  ASSERT_NO_FATAL_FAILURE(ExecAndCapture(args));
   ASSERT_EQ(0, exitcode_);
   std::string expected =
       "Note: Google Test filter = NO_TEST_FILTER_MATCH\n"
@@ -980,7 +992,7 @@ TEST_F(SystemTests, verify_disabled_not_displayed_with_no_tests) {
 TEST_F(SystemTests, verify_disabled) {
   std::vector<const char*> args{"--gtest_filter=*always_pass", "-j2"};
 
-  ExecAndCapture(args);
+  ASSERT_NO_FATAL_FAILURE(ExecAndCapture(args));
   ASSERT_EQ(0, exitcode_) << "Test output:\n" << raw_output_;
   std::string expected =
       "Note: Google Test filter = *always_pass\n"
@@ -997,7 +1009,7 @@ TEST_F(SystemTests, verify_disabled) {
 TEST_F(SystemTests, verify_disabled_color) {
   std::vector<const char*> args{"--gtest_filter=*always_pass", "-j2", "--gtest_color=yes"};
 
-  ExecAndCapture(args);
+  ASSERT_NO_FATAL_FAILURE(ExecAndCapture(args));
   ASSERT_EQ(0, exitcode_) << "Test output:\n" << raw_output_;
   std::string expected =
       "\x1B[0;33mNote: Google Test filter = *always_pass\x1B[m\n"
@@ -1132,7 +1144,7 @@ TEST_F(SystemTests, verify_memory) {
   // This test verifies that memory isn't leaking when running repeatedly.
   std::vector<const char*> args{"--gtest_filter=*.DISABLED_memory",
                                 "--gtest_also_run_disabled_tests", "--gtest_repeat=400"};
-  ExecAndCapture(args);
+  ASSERT_NO_FATAL_FAILURE(ExecAndCapture(args));
   ASSERT_EQ(0, exitcode_) << "Test output:\n" << raw_output_;
   std::vector<std::string> lines(android::base::Split(raw_output_, "\n"));
 
@@ -1172,6 +1184,92 @@ TEST_F(SystemTests, verify_memory) {
       << "Did not find the expected 400 lines of memory data." << std::endl
       << "Raw output:" << std::endl
       << raw_output_;
+}
+
+TEST_F(SystemTests, verify_sharding) {
+  std::string expected =
+      "Note: Google Test filter = SystemTestsShard*.DISABLED*\n"
+      "Note: This is test shard 1 of 4\n"
+      "[==========] Running 3 tests from 3 test suites (20 jobs).\n"
+      "[    OK    ] SystemTestsShard1.DISABLED_case1_test1 (XX ms)\n"
+      "[    OK    ] SystemTestsShard2.DISABLED_case2_test1 (XX ms)\n"
+      "[    OK    ] SystemTestsShard3.DISABLED_case3_test1 (XX ms)\n"
+      "[==========] 3 tests from 3 test suites ran. (XX ms total)\n"
+      "[  PASSED  ] 3 tests.\n";
+  ASSERT_NE(-1, setenv("GTEST_TOTAL_SHARDS", "4", 1));
+  ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "0", 1));
+  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0));
+
+  expected =
+      "Note: Google Test filter = SystemTestsShard*.DISABLED*\n"
+      "Note: This is test shard 2 of 4\n"
+      "[==========] Running 3 tests from 3 test suites (20 jobs).\n"
+      "[    OK    ] SystemTestsShard1.DISABLED_case1_test2 (XX ms)\n"
+      "[    OK    ] SystemTestsShard2.DISABLED_case2_test2 (XX ms)\n"
+      "[    OK    ] SystemTestsShard3.DISABLED_case3_test2 (XX ms)\n"
+      "[==========] 3 tests from 3 test suites ran. (XX ms total)\n"
+      "[  PASSED  ] 3 tests.\n";
+  ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "1", 1));
+  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0));
+
+  expected =
+      "Note: Google Test filter = SystemTestsShard*.DISABLED*\n"
+      "Note: This is test shard 3 of 4\n"
+      "[==========] Running 3 tests from 3 test suites (20 jobs).\n"
+      "[    OK    ] SystemTestsShard1.DISABLED_case1_test3 (XX ms)\n"
+      "[    OK    ] SystemTestsShard2.DISABLED_case2_test3 (XX ms)\n"
+      "[    OK    ] SystemTestsShard3.DISABLED_case3_test3 (XX ms)\n"
+      "[==========] 3 tests from 3 test suites ran. (XX ms total)\n"
+      "[  PASSED  ] 3 tests.\n";
+  ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "2", 1));
+  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0));
+
+  expected =
+      "Note: Google Test filter = SystemTestsShard*.DISABLED*\n"
+      "Note: This is test shard 4 of 4\n"
+      "[==========] Running 3 tests from 3 test suites (20 jobs).\n"
+      "[    OK    ] SystemTestsShard1.DISABLED_case1_test4 (XX ms)\n"
+      "[    OK    ] SystemTestsShard2.DISABLED_case2_test4 (XX ms)\n"
+      "[    OK    ] SystemTestsShard3.DISABLED_case3_test4 (XX ms)\n"
+      "[==========] 3 tests from 3 test suites ran. (XX ms total)\n"
+      "[  PASSED  ] 3 tests.\n";
+  ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "3", 1));
+  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0));
+}
+
+TEST_F(SystemTests, verify_sharding_color) {
+  std::string expected =
+      "\x1B[0;33mNote: Google Test filter = SystemTestsShard*.DISABLED*\x1B[m\n"
+      "\x1B[0;33mNote: This is test shard 1 of 4\x1B[m\n"
+      "\x1B[0;32m[==========]\x1B[m Running 3 tests from 3 test suites (20 jobs).\n"
+      "\x1B[0;32m[    OK    ]\x1B[m SystemTestsShard1.DISABLED_case1_test1 (XX ms)\n"
+      "\x1B[0;32m[    OK    ]\x1B[m SystemTestsShard2.DISABLED_case2_test1 (XX ms)\n"
+      "\x1B[0;32m[    OK    ]\x1B[m SystemTestsShard3.DISABLED_case3_test1 (XX ms)\n"
+      "\x1B[0;32m[==========]\x1B[m 3 tests from 3 test suites ran. (XX ms total)\n"
+      "\x1B[0;32m[  PASSED  ]\x1B[m 3 tests.\n";
+  ASSERT_NE(-1, setenv("GTEST_TOTAL_SHARDS", "4", 1));
+  ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "0", 1));
+  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0,
+                                 std::vector<const char*>{"--gtest_color=yes"}));
+}
+
+TEST_F(SystemTests, verify_sharding_error) {
+  std::string expected =
+      "Invalid environment variables: we require 0 <= GTEST_SHARD_INDEX < GTEST_TOTAL_SHARDS, but "
+      "you have GTEST_SHARD_INDEX=4, GTEST_TOTAL_SHARDS=4\n";
+  ASSERT_NE(-1, setenv("GTEST_TOTAL_SHARDS", "4", 1));
+  ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "4", 1));
+  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 1));
+}
+
+TEST_F(SystemTests, verify_sharding_error_color) {
+  std::string expected =
+      "\x1B[0;31mInvalid environment variables: we require 0 <= GTEST_SHARD_INDEX < "
+      "GTEST_TOTAL_SHARDS, but you have GTEST_SHARD_INDEX=4, GTEST_TOTAL_SHARDS=4\x1B[m\n";
+  ASSERT_NE(-1, setenv("GTEST_TOTAL_SHARDS", "4", 1));
+  ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "4", 1));
+  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 1,
+                                 std::vector<const char*>{"--gtest_color=yes"}));
 }
 
 // These tests are used by the verify_disabled tests.
@@ -1380,6 +1478,30 @@ TEST(SystemTestsMemory, DISABLED_memory) {
   printf("Allocated 0\n");
 #endif
 }
+
+TEST(SystemTestsShard1, DISABLED_case1_test1) {}
+
+TEST(SystemTestsShard1, DISABLED_case1_test2) {}
+
+TEST(SystemTestsShard1, DISABLED_case1_test3) {}
+
+TEST(SystemTestsShard1, DISABLED_case1_test4) {}
+
+TEST(SystemTestsShard2, DISABLED_case2_test1) {}
+
+TEST(SystemTestsShard2, DISABLED_case2_test2) {}
+
+TEST(SystemTestsShard2, DISABLED_case2_test3) {}
+
+TEST(SystemTestsShard2, DISABLED_case2_test4) {}
+
+TEST(SystemTestsShard3, DISABLED_case3_test1) {}
+
+TEST(SystemTestsShard3, DISABLED_case3_test2) {}
+
+TEST(SystemTestsShard3, DISABLED_case3_test3) {}
+
+TEST(SystemTestsShard3, DISABLED_case3_test4) {}
 
 }  // namespace gtest_extras
 }  // namespace android
