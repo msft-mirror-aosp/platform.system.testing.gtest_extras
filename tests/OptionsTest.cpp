@@ -78,7 +78,7 @@ TEST(OptionsTest, check_defaults) {
   EXPECT_EQ("", options.filter());
   EXPECT_EQ(1, options.num_iterations());
   EXPECT_TRUE(options.print_time());
-  EXPECT_FALSE(options.gtest_format());
+  EXPECT_TRUE(options.gtest_format());
   EXPECT_FALSE(options.allow_disabled_tests());
   EXPECT_FALSE(options.list_tests());
   EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
@@ -102,6 +102,35 @@ TEST(OptionsTest, gtest_format_error_argument) {
   capture.Stop();
   ASSERT_FALSE(parsed) << "Process did not fail properly.";
   EXPECT_EQ("--gtest_format does not take an argument.\n", capture.str());
+}
+
+TEST(OptionsTest, no_gtest_format) {
+  std::vector<const char*> cur_args{"ignore", "--no_gtest_format"};
+  std::vector<const char*> child_args;
+  Options options;
+  ASSERT_TRUE(options.Process(cur_args, &child_args));
+  EXPECT_FALSE(options.gtest_format());
+  EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
+}
+
+TEST(OptionsTest, no_gtest_format_and_gtest_format) {
+  std::vector<const char*> cur_args{"ignore", "--no_gtest_format", "--gtest_format"};
+  std::vector<const char*> child_args;
+  Options options;
+  ASSERT_TRUE(options.Process(cur_args, &child_args));
+  EXPECT_FALSE(options.gtest_format());
+  EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
+}
+
+TEST(OptionsTest, no_gtest_format_error_argument) {
+  CapturedStdout capture;
+  std::vector<const char*> cur_args{"ignore", "--no_gtest_format=not_allowed"};
+  std::vector<const char*> child_args;
+  Options options;
+  bool parsed = options.Process(cur_args, &child_args);
+  capture.Stop();
+  ASSERT_FALSE(parsed) << "Process did not fail properly.";
+  EXPECT_EQ("--no_gtest_format does not take an argument.\n", capture.str());
 }
 
 TEST(OptionsTest, gtest_list_tests) {
@@ -613,7 +642,7 @@ TEST(OptionsTest, verify_non_env_variables) {
   EXPECT_EQ("", options.filter());
   EXPECT_EQ(1, options.num_iterations());
   EXPECT_TRUE(options.print_time());
-  EXPECT_FALSE(options.gtest_format());
+  EXPECT_TRUE(options.gtest_format());
   EXPECT_FALSE(options.allow_disabled_tests());
   EXPECT_FALSE(options.list_tests());
   EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
