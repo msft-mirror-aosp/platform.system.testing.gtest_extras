@@ -192,7 +192,8 @@ TEST_F(SystemTests, verify_pass) {
       "[    OK    ] SystemTests.DISABLED_pass (XX ms)\n"
       "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
       "[  PASSED  ] 1 test.\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_pass", expected, 0));
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("*.DISABLED_pass", expected, 0, std::vector<const char*>{"--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_pass_no_print_time) {
@@ -203,7 +204,8 @@ TEST_F(SystemTests, verify_pass_no_print_time) {
       "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
       "[  PASSED  ] 1 test.\n";
   ASSERT_NO_FATAL_FAILURE(
-      Verify("*.DISABLED_pass", expected, 0, std::vector<const char*>{"--gtest_print_time=0"}));
+      Verify("*.DISABLED_pass", expected, 0,
+             std::vector<const char*>{"--gtest_print_time=0", "--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_pass_color) {
@@ -214,7 +216,8 @@ TEST_F(SystemTests, verify_pass_color) {
       "\x1B[0;32m[==========]\x1B[m 1 test from 1 test suite ran. (XX ms total)\n"
       "\x1B[0;32m[  PASSED  ]\x1B[m 1 test.\n";
   ASSERT_NO_FATAL_FAILURE(
-      Verify("*.DISABLED_pass", expected, 0, std::vector<const char*>{"--gtest_color=yes"}));
+      Verify("*.DISABLED_pass", expected, 0,
+             std::vector<const char*>{"--gtest_color=yes", "--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_pass_gtest_format) {
@@ -225,8 +228,7 @@ TEST_F(SystemTests, verify_pass_gtest_format) {
       "[       OK ] SystemTests.DISABLED_pass (XX ms)\n"
       "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
       "[  PASSED  ] 1 test.\n";
-  ASSERT_NO_FATAL_FAILURE(
-      Verify("*.DISABLED_pass", expected, 0, std::vector<const char*>{"--gtest_format"}));
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_pass", expected, 0));
 }
 
 TEST_F(SystemTests, verify_pass_gtest_format_no_print_time) {
@@ -238,8 +240,7 @@ TEST_F(SystemTests, verify_pass_gtest_format_no_print_time) {
       "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
       "[  PASSED  ] 1 test.\n";
   ASSERT_NO_FATAL_FAILURE(
-      Verify("*.DISABLED_pass", expected, 0,
-             std::vector<const char*>{"--gtest_format", "--gtest_print_time=0"}));
+      Verify("*.DISABLED_pass", expected, 0, std::vector<const char*>{"--gtest_print_time=0"}));
 }
 
 TEST_F(SystemTests, verify_pass_gtest_format_color) {
@@ -250,8 +251,8 @@ TEST_F(SystemTests, verify_pass_gtest_format_color) {
       "\x1B[0;32m[       OK ]\x1B[m SystemTests.DISABLED_pass (XX ms)\n"
       "\x1B[0;32m[==========]\x1B[m 1 test from 1 test suite ran. (XX ms total)\n"
       "\x1B[0;32m[  PASSED  ]\x1B[m 1 test.\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_pass", expected, 0,
-                                 std::vector<const char*>{"--gtest_format", "--gtest_color=yes"}));
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("*.DISABLED_pass", expected, 0, std::vector<const char*>{"--gtest_color=yes"}));
 }
 
 TEST_F(SystemTests, verify_skip) {
@@ -263,7 +264,8 @@ TEST_F(SystemTests, verify_skip) {
       "[  PASSED  ] 0 tests.\n"
       "[  SKIPPED ] 1 test, listed below:\n"
       "[  SKIPPED ] SystemTests.DISABLED_skip_no_message\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_no_message", expected, 0));
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_no_message", expected, 0,
+                                 std::vector<const char*>{"--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_skip_with_message) {
@@ -276,7 +278,8 @@ TEST_F(SystemTests, verify_skip_with_message) {
       "[  PASSED  ] 0 tests.\n"
       "[  SKIPPED ] 1 test, listed below:\n"
       "[  SKIPPED ] SystemTests.DISABLED_skip_with_message\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_with_message", expected, 0));
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_with_message", expected, 0,
+                                 std::vector<const char*>{"--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_skip_no_print_time) {
@@ -288,8 +291,9 @@ TEST_F(SystemTests, verify_skip_no_print_time) {
       "[  PASSED  ] 0 tests.\n"
       "[  SKIPPED ] 1 test, listed below:\n"
       "[  SKIPPED ] SystemTests.DISABLED_skip_no_message\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_no_message", expected, 0,
-                                 std::vector<const char*>{"--gtest_print_time=0"}));
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("*.DISABLED_skip_no_message", expected, 0,
+             std::vector<const char*>{"--gtest_print_time=0", "--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_skip_color) {
@@ -301,8 +305,9 @@ TEST_F(SystemTests, verify_skip_color) {
       "\x1B[0;32m[  PASSED  ]\x1B[m 0 tests.\n"
       "\x1B[0;32m[  SKIPPED ]\x1B[m 1 test, listed below:\n"
       "\x1B[0;32m[  SKIPPED ]\x1B[m SystemTests.DISABLED_skip_no_message\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_no_message", expected, 0,
-                                 std::vector<const char*>{"--gtest_color=yes"}));
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("*.DISABLED_skip_no_message", expected, 0,
+             std::vector<const char*>{"--gtest_color=yes", "--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_skip_gtest_format) {
@@ -315,8 +320,7 @@ TEST_F(SystemTests, verify_skip_gtest_format) {
       "[  PASSED  ] 0 tests.\n"
       "[  SKIPPED ] 1 test, listed below:\n"
       "[  SKIPPED ] SystemTests.DISABLED_skip_no_message\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_no_message", expected, 0,
-                                 std::vector<const char*>{"--gtest_format"}));
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_no_message", expected, 0));
 }
 
 TEST_F(SystemTests, verify_skip_gtest_format_with_message) {
@@ -330,8 +334,7 @@ TEST_F(SystemTests, verify_skip_gtest_format_with_message) {
       "[  PASSED  ] 0 tests.\n"
       "[  SKIPPED ] 1 test, listed below:\n"
       "[  SKIPPED ] SystemTests.DISABLED_skip_with_message\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_with_message", expected, 0,
-                                 std::vector<const char*>{"--gtest_format"}));
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_with_message", expected, 0));
 }
 
 TEST_F(SystemTests, verify_skip_gtest_format_no_print_time) {
@@ -344,9 +347,8 @@ TEST_F(SystemTests, verify_skip_gtest_format_no_print_time) {
       "[  PASSED  ] 0 tests.\n"
       "[  SKIPPED ] 1 test, listed below:\n"
       "[  SKIPPED ] SystemTests.DISABLED_skip_no_message\n";
-  ASSERT_NO_FATAL_FAILURE(
-      Verify("*.DISABLED_skip_no_message", expected, 0,
-             std::vector<const char*>{"--gtest_format", "--gtest_print_time=0"}));
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_no_message", expected, 0,
+                                 std::vector<const char*>{"--gtest_print_time=0"}));
 }
 
 TEST_F(SystemTests, verify_skip_gtest_format_color) {
@@ -360,7 +362,7 @@ TEST_F(SystemTests, verify_skip_gtest_format_color) {
       "\x1B[0;32m[  SKIPPED ]\x1B[m 1 test, listed below:\n"
       "\x1B[0;32m[  SKIPPED ]\x1B[m SystemTests.DISABLED_skip_no_message\n";
   ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_no_message", expected, 0,
-                                 std::vector<const char*>{"--gtest_format", "--gtest_color=yes"}));
+                                 std::vector<const char*>{"--gtest_color=yes"}));
 }
 
 TEST_F(SystemTests, verify_xfail_fail_expect_to_fail) {
@@ -375,7 +377,8 @@ TEST_F(SystemTests, verify_xfail_fail_expect_to_fail) {
       "DISABLED_SystemTestsXfail.xfail_fail exited with exitcode 1.\n"
       "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
       "[  PASSED  ] 1 test. (1 expected failure)\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.xfail_fail", expected, 0));
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("*.xfail_fail", expected, 0, std::vector<const char*>{"--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_xfail_fail_expect_to_fail_color) {
@@ -391,7 +394,8 @@ TEST_F(SystemTests, verify_xfail_fail_expect_to_fail_color) {
       "\x1B[0;32m[==========]\x1B[m 1 test from 1 test suite ran. (XX ms total)\n"
       "\x1B[0;32m[  PASSED  ]\x1B[m 1 test. (1 expected failure)\n";
   ASSERT_NO_FATAL_FAILURE(
-      Verify("*.xfail_fail", expected, 0, std::vector<const char*>{"--gtest_color=yes"}));
+      Verify("*.xfail_fail", expected, 0,
+             std::vector<const char*>{"--gtest_color=yes", "--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_xfail_fail_expect_to_fail_gtest_format) {
@@ -407,8 +411,7 @@ TEST_F(SystemTests, verify_xfail_fail_expect_to_fail_gtest_format) {
       "[       OK ] DISABLED_SystemTestsXfail.xfail_fail (XX ms)\n"
       "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
       "[  PASSED  ] 1 test. (1 expected failure)\n";
-  ASSERT_NO_FATAL_FAILURE(
-      Verify("*.xfail_fail", expected, 0, std::vector<const char*>{"--gtest_format"}));
+  ASSERT_NO_FATAL_FAILURE(Verify("*.xfail_fail", expected, 0));
 }
 
 TEST_F(SystemTests, verify_xfail_pass_expect_to_fail) {
@@ -422,7 +425,8 @@ TEST_F(SystemTests, verify_xfail_pass_expect_to_fail) {
       "[  FAILED  ] DISABLED_SystemTestsXfail.xfail_pass\n"
       "\n"
       " 1 SHOULD HAVE FAILED TEST\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.xfail_pass", expected, 1));
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("*.xfail_pass", expected, 1, std::vector<const char*>{"--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_xfail_pass_expect_to_fail_gtest_format) {
@@ -437,8 +441,7 @@ TEST_F(SystemTests, verify_xfail_pass_expect_to_fail_gtest_format) {
       "[  FAILED  ] DISABLED_SystemTestsXfail.xfail_pass\n"
       "\n"
       " 1 SHOULD HAVE FAILED TEST\n";
-  ASSERT_NO_FATAL_FAILURE(
-      Verify("*.xfail_pass", expected, 1, std::vector<const char*>{"--gtest_format"}));
+  ASSERT_NO_FATAL_FAILURE(Verify("*.xfail_pass", expected, 1));
 }
 
 TEST_F(SystemTests, verify_xfail_pass_expect_to_fail_color) {
@@ -453,7 +456,8 @@ TEST_F(SystemTests, verify_xfail_pass_expect_to_fail_color) {
       "\n"
       " 1 SHOULD HAVE FAILED TEST\n";
   ASSERT_NO_FATAL_FAILURE(
-      Verify("*.xfail_pass", expected, 1, std::vector<const char*>{"--gtest_color=yes"}));
+      Verify("*.xfail_pass", expected, 1,
+             std::vector<const char*>{"--gtest_color=yes", "--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_deathtest_pass) {
@@ -463,7 +467,8 @@ TEST_F(SystemTests, verify_deathtest_pass) {
       "[    OK    ] SystemTestsDeathTest.DISABLED_death_pass (XX ms)\n"
       "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
       "[  PASSED  ] 1 test.\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_death_pass", expected, 0));
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("*.DISABLED_death_pass", expected, 0, std::vector<const char*>{"--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_fail) {
@@ -482,7 +487,8 @@ TEST_F(SystemTests, verify_fail) {
       "[  FAILED  ] SystemTests.DISABLED_fail\n"
       "\n"
       " 1 FAILED TEST\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_fail", expected, 1));
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("*.DISABLED_fail", expected, 1, std::vector<const char*>{"--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_fail_color) {
@@ -502,7 +508,8 @@ TEST_F(SystemTests, verify_fail_color) {
       "\n"
       " 1 FAILED TEST\n";
   ASSERT_NO_FATAL_FAILURE(
-      Verify("*.DISABLED_fail", expected, 1, std::vector<const char*>{"--gtest_color=yes"}));
+      Verify("*.DISABLED_fail", expected, 1,
+             std::vector<const char*>{"--gtest_color=yes", "--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_fail_gtest_format) {
@@ -522,8 +529,7 @@ TEST_F(SystemTests, verify_fail_gtest_format) {
       "[  FAILED  ] SystemTests.DISABLED_fail\n"
       "\n"
       " 1 FAILED TEST\n";
-  ASSERT_NO_FATAL_FAILURE(
-      Verify("*.DISABLED_fail", expected, 1, std::vector<const char*>{"--gtest_format"}));
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_fail", expected, 1));
 }
 
 TEST_F(SystemTests, verify_fail_gtest_format_color) {
@@ -543,8 +549,8 @@ TEST_F(SystemTests, verify_fail_gtest_format_color) {
       "\x1B[0;31m[  FAILED  ]\x1B[m SystemTests.DISABLED_fail\n"
       "\n"
       " 1 FAILED TEST\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_fail", expected, 1,
-                                 std::vector<const char*>{"--gtest_format", "--gtest_color=yes"}));
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("*.DISABLED_fail", expected, 1, std::vector<const char*>{"--gtest_color=yes"}));
 }
 
 TEST_F(SystemTests, verify_deathtest_fail) {
@@ -564,7 +570,8 @@ TEST_F(SystemTests, verify_deathtest_fail) {
       "[  FAILED  ] SystemTestsDeathTest.DISABLED_death_fail\n"
       "\n"
       " 1 FAILED TEST\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_death_fail", expected, 1));
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("*.DISABLED_death_fail", expected, 1, std::vector<const char*>{"--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_crash) {
@@ -583,7 +590,8 @@ TEST_F(SystemTests, verify_crash) {
       "[  FAILED  ] SystemTests.DISABLED_crash\n"
       "\n"
       " 1 FAILED TEST\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_crash", expected, 1));
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("*.DISABLED_crash", expected, 1, std::vector<const char*>{"--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_warning_slow) {
@@ -597,8 +605,9 @@ TEST_F(SystemTests, verify_warning_slow) {
       "[  SLOW    ] SystemTests.DISABLED_sleep5 (XX ms, exceeded 3000 ms)\n"
       "\n"
       " 1 SLOW TEST\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_sleep5", expected, 0,
-                                 std::vector<const char*>{"--slow_threshold_ms=3000"}));
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("*.DISABLED_sleep5", expected, 0,
+             std::vector<const char*>{"--slow_threshold_ms=3000", "--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_warning_slow_color) {
@@ -614,7 +623,8 @@ TEST_F(SystemTests, verify_warning_slow_color) {
       " 1 SLOW TEST\n";
   ASSERT_NO_FATAL_FAILURE(
       Verify("*.DISABLED_sleep5", expected, 0,
-             std::vector<const char*>{"--slow_threshold_ms=3000", "--gtest_color=yes"}));
+             std::vector<const char*>{"--slow_threshold_ms=3000", "--gtest_color=yes",
+                                      "--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_timeout) {
@@ -629,8 +639,9 @@ TEST_F(SystemTests, verify_timeout) {
       "[  TIMEOUT ] SystemTests.DISABLED_sleep_forever (stopped at XX ms)\n"
       "\n"
       " 1 TIMEOUT TEST\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_sleep_forever", expected, 1,
-                                 std::vector<const char*>{"--deadline_threshold_ms=3000"}));
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("*.DISABLED_sleep_forever", expected, 1,
+             std::vector<const char*>{"--deadline_threshold_ms=3000", "--no_gtest_format"}));
 }
 
 // Verify that tests that timeout do not get marked as slow too when
@@ -651,9 +662,10 @@ TEST_F(SystemTests, verify_timeout_not_slow) {
       "\n"
       " 1 SLOW TEST\n"
       " 1 TIMEOUT TEST\n";
-  ASSERT_NO_FATAL_FAILURE(Verify(
-      "*.DISABLED_sleep*", expected, 1,
-      std::vector<const char*>{"--slow_threshold_ms=1000", "--deadline_threshold_ms=10000"}));
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("*.DISABLED_sleep*", expected, 1,
+             std::vector<const char*>{"--slow_threshold_ms=1000", "--deadline_threshold_ms=10000",
+                                      "--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_timeout_color) {
@@ -670,7 +682,8 @@ TEST_F(SystemTests, verify_timeout_color) {
       " 1 TIMEOUT TEST\n";
   ASSERT_NO_FATAL_FAILURE(
       Verify("*.DISABLED_sleep_forever", expected, 1,
-             std::vector<const char*>{"--deadline_threshold_ms=3000", "--gtest_color=yes"}));
+             std::vector<const char*>{"--deadline_threshold_ms=3000", "--gtest_color=yes",
+                                      "--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_order_isolated) {
@@ -682,7 +695,8 @@ TEST_F(SystemTests, verify_order_isolated) {
       "[    OK    ] SystemTests.DISABLED_order_1 (XX ms)\n"
       "[==========] 3 tests from 1 test suite ran. (XX ms total)\n"
       "[  PASSED  ] 3 tests.\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_order_*", expected, 0));
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("*.DISABLED_order_*", expected, 0, std::vector<const char*>{"--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_order_not_isolated) {
@@ -702,8 +716,8 @@ TEST_F(SystemTests, verify_order_not_isolated) {
       "[----------] Global test environment tear-down\n"
       "[==========] 3 tests from 1 test suite ran. (XX ms total)\n"
       "[  PASSED  ] 3 tests.\n";
-  ASSERT_NO_FATAL_FAILURE(
-      Verify("*.DISABLED_order_*", expected, 0, std::vector<const char*>{"--no_isolate"}));
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_order_*", expected, 0,
+                                 std::vector<const char*>{"--no_isolate", "--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_fail_ge10) {
@@ -753,7 +767,8 @@ TEST_F(SystemTests, verify_job_count_single) {
       "[    OK    ] SystemTests.DISABLED_job_3 (XX ms)\n"
       "[==========] 3 tests from 1 test suite ran. (XX ms total)\n"
       "[  PASSED  ] 3 tests.\n";
-  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_job_*", expected, 0, std::vector<const char*>{"-j1"}));
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_job_*", expected, 0,
+                                 std::vector<const char*>{"-j1", "--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_job_count_multiple) {
@@ -765,8 +780,8 @@ TEST_F(SystemTests, verify_job_count_multiple) {
       "[    OK    ] SystemTests.DISABLED_job_3 (XX ms)\n"
       "[==========] 3 tests from 1 test suite ran. (XX ms total)\n"
       "[  PASSED  ] 3 tests.\n";
-  ASSERT_NO_FATAL_FAILURE(
-      Verify("*.DISABLED_job_*", expected, 0, std::vector<const char*>{"-j", "2"}));
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_job_*", expected, 0,
+                                 std::vector<const char*>{"-j", "2", "--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_help) {
@@ -833,7 +848,8 @@ TEST_F(SystemTests, verify_repeat) {
       "[  PASSED  ] 3 tests.\n";
   uint64_t time_ns = NanoTime();
   ASSERT_NO_FATAL_FAILURE(
-      Verify("*.DISABLED_order_*", expected, 0, std::vector<const char*>{"--gtest_repeat=3"}));
+      Verify("*.DISABLED_order_*", expected, 0,
+             std::vector<const char*>{"--gtest_repeat=3", "--no_gtest_format"}));
   time_ns = NanoTime() - time_ns;
   // Make sure that the total test time is about 18 seconds.
   double seconds = double(time_ns) / 1000000000;
@@ -848,7 +864,7 @@ TEST_F(SystemTests, verify_repeat) {
 TEST_F(SystemTests, verify_results_as_tests_finish) {
   // This test verifies that test output comes out as the test finishes.
   Exec(std::vector<const char*>{"--gtest_filter=*.DISABLED_order_*",
-                                "--gtest_also_run_disabled_tests", "-j20"});
+                                "--gtest_also_run_disabled_tests", "-j20", "--no_gtest_format"});
 
   std::string output;
   std::vector<char> buffer(4096);
@@ -990,7 +1006,7 @@ TEST_F(SystemTests, verify_disabled_not_displayed_with_no_tests) {
 }
 
 TEST_F(SystemTests, verify_disabled) {
-  std::vector<const char*> args{"--gtest_filter=*always_pass", "-j2"};
+  std::vector<const char*> args{"--gtest_filter=*always_pass", "-j2", "--no_gtest_format"};
 
   ASSERT_NO_FATAL_FAILURE(ExecAndCapture(args));
   ASSERT_EQ(0, exitcode_) << "Test output:\n" << raw_output_;
@@ -1007,7 +1023,8 @@ TEST_F(SystemTests, verify_disabled) {
 }
 
 TEST_F(SystemTests, verify_disabled_color) {
-  std::vector<const char*> args{"--gtest_filter=*always_pass", "-j2", "--gtest_color=yes"};
+  std::vector<const char*> args{"--gtest_filter=*always_pass", "-j2", "--gtest_color=yes",
+                                "--no_gtest_format"};
 
   ASSERT_NO_FATAL_FAILURE(ExecAndCapture(args));
   ASSERT_EQ(0, exitcode_) << "Test output:\n" << raw_output_;
@@ -1060,7 +1077,7 @@ TEST_F(SystemTests, verify_SIGINT) {
 TEST_F(SystemTests, verify_SIGQUIT) {
   // Verify that SIGQUIT prints all of the running tests.
   Exec(std::vector<const char*>{"--gtest_filter=*.DISABLED_job*", "--gtest_also_run_disabled_tests",
-                                "-j20"});
+                                "-j20", "--no_gtest_format"});
   // It is expected that all of the tests will be sleeping so nothing will
   // complete by the time the signal is sent.
   sleep(1);
@@ -1102,7 +1119,7 @@ TEST_F(SystemTests, verify_SIGQUIT) {
 TEST_F(SystemTests, verify_SIGQUIT_after_test_finish) {
   // Verify that SIGQUIT prints all of the tests after a test finishes.
   Exec(std::vector<const char*>{"--gtest_filter=*.DISABLED_sigquit_*",
-                                "--gtest_also_run_disabled_tests", "-j20"});
+                                "--gtest_also_run_disabled_tests", "-j20", "--no_gtest_format"});
   // It is expected that one tests will have finished, but the rest will still
   // be running.
   sleep(1);
@@ -1198,7 +1215,8 @@ TEST_F(SystemTests, verify_sharding) {
       "[  PASSED  ] 3 tests.\n";
   ASSERT_NE(-1, setenv("GTEST_TOTAL_SHARDS", "4", 1));
   ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "0", 1));
-  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0));
+  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0,
+                                 std::vector<const char*>{"--no_gtest_format"}));
 
   expected =
       "Note: Google Test filter = SystemTestsShard*.DISABLED*\n"
@@ -1210,7 +1228,8 @@ TEST_F(SystemTests, verify_sharding) {
       "[==========] 3 tests from 3 test suites ran. (XX ms total)\n"
       "[  PASSED  ] 3 tests.\n";
   ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "1", 1));
-  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0));
+  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0,
+                                 std::vector<const char*>{"--no_gtest_format"}));
 
   expected =
       "Note: Google Test filter = SystemTestsShard*.DISABLED*\n"
@@ -1222,7 +1241,8 @@ TEST_F(SystemTests, verify_sharding) {
       "[==========] 3 tests from 3 test suites ran. (XX ms total)\n"
       "[  PASSED  ] 3 tests.\n";
   ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "2", 1));
-  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0));
+  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0,
+                                 std::vector<const char*>{"--no_gtest_format"}));
 
   expected =
       "Note: Google Test filter = SystemTestsShard*.DISABLED*\n"
@@ -1234,7 +1254,8 @@ TEST_F(SystemTests, verify_sharding) {
       "[==========] 3 tests from 3 test suites ran. (XX ms total)\n"
       "[  PASSED  ] 3 tests.\n";
   ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "3", 1));
-  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0));
+  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0,
+                                 std::vector<const char*>{"--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_sharding_color) {
@@ -1249,8 +1270,9 @@ TEST_F(SystemTests, verify_sharding_color) {
       "\x1B[0;32m[  PASSED  ]\x1B[m 3 tests.\n";
   ASSERT_NE(-1, setenv("GTEST_TOTAL_SHARDS", "4", 1));
   ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "0", 1));
-  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0,
-                                 std::vector<const char*>{"--gtest_color=yes"}));
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("SystemTestsShard*.DISABLED*", expected, 0,
+             std::vector<const char*>{"--gtest_color=yes", "--no_gtest_format"}));
 }
 
 TEST_F(SystemTests, verify_sharding_error) {
