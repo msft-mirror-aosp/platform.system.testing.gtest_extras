@@ -37,8 +37,11 @@ class Options {
   size_t job_count() const { return job_count_; }
   int num_iterations() const { return num_iterations_; }
 
-  uint64_t deadline_threshold_ms() const { return thresholds_.at("deadline_threshold_ms"); }
-  uint64_t slow_threshold_ms() const { return thresholds_.at("slow_threshold_ms"); }
+  uint64_t deadline_threshold_ms() const { return numerics_.at("deadline_threshold_ms"); }
+  uint64_t slow_threshold_ms() const { return numerics_.at("slow_threshold_ms"); }
+
+  uint64_t shard_index() const { return numerics_.at("gtest_shard_index"); }
+  uint64_t total_shards() const { return numerics_.at("gtest_total_shards"); }
 
   bool print_time() const { return bools_.at("gtest_print_time"); }
   bool gtest_format() const { return bools_.at("gtest_format"); }
@@ -55,7 +58,7 @@ class Options {
 
   std::unordered_map<std::string, bool> bools_;
   std::unordered_map<std::string, std::string> strings_;
-  std::unordered_map<std::string, uint64_t> thresholds_;
+  std::unordered_map<std::string, uint64_t> numerics_;
 
   enum FlagType : uint32_t {
     FLAG_NONE = 0,
@@ -75,7 +78,8 @@ class Options {
   bool HandleArg(const std::string& arg, const std::string& value, const ArgInfo& info,
                  bool from_env = false);
 
-  bool SetThreshold(const std::string&, const std::string&, bool);
+  bool SetNumeric(const std::string&, const std::string&, bool);
+  bool SetNumericEnvOnly(const std::string&, const std::string&, bool);
   bool SetBool(const std::string&, const std::string&, bool);
   bool SetString(const std::string&, const std::string&, bool);
   bool SetIterations(const std::string&, const std::string&, bool);

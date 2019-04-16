@@ -98,32 +98,39 @@ void Isolate::EnumerateTests() {
     PLOG(FATAL) << "Unexpected failure from popen";
   }
 
-  bool skip_until_next_case = false;
-  std::string case_name;
+  size_t total_shards = options_.total_shards();
+  bool sharded = total_shards > 1;
+  size_t test_count = 0;
+  if (sharded) {
+    test_count = options_.shard_index() + 1;
+  }
+
+  bool skip_until_next_suite = false;
+  std::string suite_name;
   char* buffer = nullptr;
   size_t buffer_len = 0;
-  bool new_case = false;
+  bool new_suite = false;
   while (getline(&buffer, &buffer_len, fp) > 0) {
     if (buffer[0] != ' ') {
       // This is the case name.
-      case_name = buffer;
-      auto space_index = case_name.find(' ');
+      suite_name = buffer;
+      auto space_index = suite_name.find(' ');
       if (space_index != std::string::npos) {
-        case_name.erase(space_index);
+        suite_name.erase(space_index);
       }
-      if (case_name.back() == '\n') {
-        case_name.resize(case_name.size() - 1);
+      if (suite_name.back() == '\n') {
+        suite_name.resize(suite_name.size() - 1);
       }
 
-      if (!options_.allow_disabled_tests() && android::base::StartsWith(case_name, "DISABLED_")) {
+      if (!options_.allow_disabled_tests() && android::base::StartsWith(suite_name, "DISABLED_")) {
         // This whole set of tests have been disabled, skip them all.
-        skip_until_next_case = true;
+        skip_until_next_suite = true;
       } else {
-        new_case = true;
-        skip_until_next_case = false;
+        new_suite = true;
+        skip_until_next_suite = false;
       }
     } else if (buffer[0] == ' ' && buffer[1] == ' ') {
-      if (!skip_until_next_case) {
+      if (!skip_until_next_suite) {
         std::string test_name = &buffer[2];
         auto space_index = test_name.find(' ');
         if (space_index != std::string::npos) {
@@ -133,13 +140,18 @@ void Isolate::EnumerateTests() {
           test_name.resize(test_name.size() - 1);
         }
         if (options_.allow_disabled_tests() || !android::base::StartsWith(test_name, "DISABLED_")) {
-          tests_.push_back(std::make_tuple(case_name, test_name));
-          total_tests_++;
-          if (new_case) {
-            // Only increment the number of cases when we find at least one test
-            // for the cases.
-            total_cases_++;
-            new_case = false;
+          if (!sharded || --test_count == 0) {
+            tests_.push_back(std::make_tuple(suite_name, test_name));
+            total_tests_++;
+            if (new_suite) {
+              // Only increment the number of suites when we find at least one test
+              // for the suites.
+              total_suites_++;
+              new_suite = false;
+            }
+            if (sharded) {
+              test_count = total_shards;
+            }
           }
         } else {
           total_disable_tests_++;
@@ -267,7 +279,9 @@ size_t Isolate::CheckTestsFinished() {
           test->AppendOutput(output);
           test->set_result(TEST_FAIL);
         } else {
-          test->set_result(TEST_PASS);
+          // Set the result based on the output, since skipped tests and
+          // passing tests have the same exit status.
+          test->SetResultFromOutput();
         }
       }
     } else if (test->result() == TEST_TIMEOUT) {
@@ -307,6 +321,9 @@ size_t Isolate::CheckTestsFinished() {
         break;
       case TEST_XFAIL:
         total_xfail_tests_++;
+        break;
+      case TEST_SKIPPED:
+        total_skipped_tests_++;
         break;
       case TEST_NONE:
         LOG(FATAL) << "Test result is TEST_NONE, this should not be possible.";
@@ -381,6 +398,7 @@ void Isolate::RunAllTests() {
   total_xfail_tests_ = 0;
   total_timeout_tests_ = 0;
   total_slow_tests_ = 0;
+  total_skipped_tests_ = 0;
 
   running_by_test_index_.clear();
 
@@ -415,7 +433,11 @@ void Isolate::RunAllTests() {
 
 void Isolate::PrintResults(size_t total, const ResultsType& results, std::string* footer) {
   ColoredPrintf(results.color, results.prefix);
-  printf(" %s %s, listed below:\n", PluralizeString(total, " test").c_str(), results.list_desc);
+  if (results.list_desc != nullptr) {
+    printf(" %s %s, listed below:\n", PluralizeString(total, " test").c_str(), results.list_desc);
+  } else {
+    printf(" %s, listed below:\n", PluralizeString(total, " test").c_str());
+  }
   for (const auto& entry : finished_) {
     const Test* test = entry.second.get();
     if (results.match_func(*test)) {
@@ -427,6 +449,11 @@ void Isolate::PrintResults(size_t total, const ResultsType& results, std::string
       printf("\n");
     }
   }
+
+  if (results.title == nullptr) {
+    return;
+  }
+
   if (total < 10) {
     *footer += ' ';
   }
@@ -436,8 +463,8 @@ void Isolate::PrintResults(size_t total, const ResultsType& results, std::string
 
 Isolate::ResultsType Isolate::SlowResults = {
     .color = COLOR_YELLOW,
-    .prefix = "[   SLOW   ]",
-    .list_desc = "slow",
+    .prefix = "[  SLOW    ]",
+    .list_desc = nullptr,
     .title = "SLOW",
     .match_func = [](const Test& test) { return test.slow(); },
     .print_func =
@@ -449,7 +476,7 @@ Isolate::ResultsType Isolate::SlowResults = {
 
 Isolate::ResultsType Isolate::XpassFailResults = {
     .color = COLOR_RED,
-    .prefix = "[   FAIL   ]",
+    .prefix = "[  FAILED  ]",
     .list_desc = "should have failed",
     .title = "SHOULD HAVE FAILED",
     .match_func = [](const Test& test) { return test.result() == TEST_XPASS; },
@@ -458,8 +485,8 @@ Isolate::ResultsType Isolate::XpassFailResults = {
 
 Isolate::ResultsType Isolate::FailResults = {
     .color = COLOR_RED,
-    .prefix = "[   FAIL   ]",
-    .list_desc = "failed",
+    .prefix = "[  FAILED  ]",
+    .list_desc = nullptr,
     .title = "FAILED",
     .match_func = [](const Test& test) { return test.result() == TEST_FAIL; },
     .print_func = nullptr,
@@ -467,8 +494,8 @@ Isolate::ResultsType Isolate::FailResults = {
 
 Isolate::ResultsType Isolate::TimeoutResults = {
     .color = COLOR_RED,
-    .prefix = "[ TIMEOUT  ]",
-    .list_desc = "timed out",
+    .prefix = "[  TIMEOUT ]",
+    .list_desc = nullptr,
     .title = "TIMEOUT",
     .match_func = [](const Test& test) { return test.result() == TEST_TIMEOUT; },
     .print_func =
@@ -477,13 +504,22 @@ Isolate::ResultsType Isolate::TimeoutResults = {
         },
 };
 
+Isolate::ResultsType Isolate::SkippedResults = {
+    .color = COLOR_GREEN,
+    .prefix = "[  SKIPPED ]",
+    .list_desc = nullptr,
+    .title = nullptr,
+    .match_func = [](const Test& test) { return test.result() == TEST_SKIPPED; },
+    .print_func = nullptr,
+};
+
 void Isolate::PrintFooter(uint64_t elapsed_time_ns) {
   ColoredPrintf(COLOR_GREEN, "[==========]");
   printf(" %s from %s ran. (%" PRId64 " ms total)\n",
          PluralizeString(total_tests_, " test").c_str(),
-         PluralizeString(total_cases_, " test case").c_str(), elapsed_time_ns / kNsPerMs);
+         PluralizeString(total_suites_, " test suite").c_str(), elapsed_time_ns / kNsPerMs);
 
-  ColoredPrintf(COLOR_GREEN, "[   PASS   ]");
+  ColoredPrintf(COLOR_GREEN, "[  PASSED  ]");
   printf(" %s.", PluralizeString(total_pass_tests_ + total_xfail_tests_, " test").c_str());
   if (total_xfail_tests_ != 0) {
     printf(" (%s)", PluralizeString(total_xfail_tests_, " expected failure").c_str());
@@ -491,6 +527,12 @@ void Isolate::PrintFooter(uint64_t elapsed_time_ns) {
   printf("\n");
 
   std::string footer;
+
+  // Tests that were skipped.
+  if (total_skipped_tests_ != 0) {
+    PrintResults(total_skipped_tests_, SkippedResults, &footer);
+  }
+
   // Tests that ran slow.
   if (total_slow_tests_ != 0) {
     PrintResults(total_slow_tests_, SlowResults, &footer);
@@ -577,7 +619,7 @@ void TestResultPrinter::OnTestPartResult(const ::testing::TestPartResult& result
 
   // Print failure message from the assertion (e.g. expected this and got that).
   printf("%s:(%d) Failure in test %s.%s\n%s\n", result.file_name(), result.line_number(),
-         pinfo_->test_case_name(), pinfo_->name(), result.message());
+         pinfo_->test_suite_name(), pinfo_->name(), result.message());
   fflush(stdout);
 }
 
@@ -607,28 +649,28 @@ void Isolate::WriteXmlResults(uint64_t elapsed_time_ns, time_t start_time) {
   fprintf(fp, " timestamp=\"%s\" time=\"%.3lf\" name=\"AllTests\">\n", timestamp,
           double(elapsed_time_ns) / kNsPerMs);
 
-  // Construct the cases information.
-  struct CaseInfo {
-    std::string case_name;
+  // Construct the suite information.
+  struct SuiteInfo {
+    std::string suite_name;
     size_t fails = 0;
     double elapsed_ms = 0;
     std::vector<const Test*> tests;
   };
-  std::string last_case_name;
-  std::vector<CaseInfo> cases;
-  CaseInfo* info = nullptr;
+  std::string last_suite_name;
+  std::vector<SuiteInfo> suites;
+  SuiteInfo* info = nullptr;
   for (const auto& entry : finished_) {
     const Test* test = entry.second.get();
-    const std::string& case_name = test->case_name();
+    const std::string& suite_name = test->suite_name();
     if (test->result() == TEST_XFAIL) {
       // Skip XFAIL tests.
       continue;
     }
-    if (last_case_name != case_name) {
-      CaseInfo case_info{.case_name = case_name.substr(0, case_name.size() - 1)};
-      last_case_name = case_name;
-      cases.push_back(case_info);
-      info = &cases.back();
+    if (last_suite_name != suite_name) {
+      SuiteInfo suite_info{.suite_name = suite_name.substr(0, suite_name.size() - 1)};
+      last_suite_name = suite_name;
+      suites.push_back(suite_info);
+      info = &suites.back();
     }
     info->tests.push_back(test);
     info->elapsed_ms += double(test->RunTimeNs()) / kNsPerMs;
@@ -637,16 +679,16 @@ void Isolate::WriteXmlResults(uint64_t elapsed_time_ns, time_t start_time) {
     }
   }
 
-  for (auto& case_entry : cases) {
+  for (auto& suite_entry : suites) {
     fprintf(fp,
             "  <testsuite name=\"%s\" tests=\"%zu\" failures=\"%zu\" disabled=\"0\" errors=\"0\"",
-            case_entry.case_name.c_str(), case_entry.tests.size(), case_entry.fails);
-    fprintf(fp, " time=\"%.3lf\">\n", case_entry.elapsed_ms);
+            suite_entry.suite_name.c_str(), suite_entry.tests.size(), suite_entry.fails);
+    fprintf(fp, " time=\"%.3lf\">\n", suite_entry.elapsed_ms);
 
-    for (auto test : case_entry.tests) {
+    for (auto test : suite_entry.tests) {
       fprintf(fp, "    <testcase name=\"%s\" status=\"run\" time=\"%.3lf\" classname=\"%s\"",
               test->test_name().c_str(), double(test->RunTimeNs()) / kNsPerMs,
-              case_entry.case_name.c_str());
+              suite_entry.suite_name.c_str());
       if (test->result() == TEST_PASS) {
         fputs(" />\n", fp);
       } else {
@@ -667,6 +709,29 @@ int Isolate::Run() {
   slow_threshold_ns_ = options_.slow_threshold_ms() * kNsPerMs;
   deadline_threshold_ns_ = options_.deadline_threshold_ms() * kNsPerMs;
 
+  bool sharding_enabled = options_.total_shards() > 1;
+  if (sharding_enabled &&
+      (options_.shard_index() < 0 || options_.shard_index() >= options_.total_shards())) {
+    ColoredPrintf(COLOR_RED,
+                  "Invalid environment variables: we require 0 <= GTEST_SHARD_INDEX < "
+                  "GTEST_TOTAL_SHARDS, but you have GTEST_SHARD_INDEX=%" PRId64
+                  ", GTEST_TOTAL_SHARDS=%" PRId64,
+                  options_.shard_index(), options_.total_shards());
+    printf("\n");
+    return 1;
+  }
+
+  if (!options_.filter().empty()) {
+    ColoredPrintf(COLOR_YELLOW, "Note: Google Test filter = %s", options_.filter().c_str());
+    printf("\n");
+  }
+
+  if (sharding_enabled) {
+    ColoredPrintf(COLOR_YELLOW, "Note: This is test shard %" PRId64 " of %" PRId64,
+                  options_.shard_index() + 1, options_.total_shards());
+    printf("\n");
+  }
+
   EnumerateTests();
 
   // Stop default result printer to avoid environment setup/teardown information for each test.
@@ -676,7 +741,7 @@ int Isolate::Run() {
   RegisterSignalHandler();
 
   std::string job_info("Running " + PluralizeString(total_tests_, " test") + " from " +
-                       PluralizeString(total_cases_, " test case") + " (" +
+                       PluralizeString(total_suites_, " test suite") + " (" +
                        PluralizeString(options_.job_count(), " job") + ").");
 
   int exit_code = 0;
@@ -699,7 +764,7 @@ int Isolate::Run() {
       WriteXmlResults(time_ns, start_time);
     }
 
-    if (total_pass_tests_ + total_xfail_tests_ != tests_.size()) {
+    if (total_pass_tests_ + total_skipped_tests_ + total_xfail_tests_ != tests_.size()) {
       exit_code = 1;
     }
   }

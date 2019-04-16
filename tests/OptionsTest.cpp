@@ -71,12 +71,14 @@ TEST(OptionsTest, check_defaults) {
   EXPECT_LT(0U, options.job_count());
   EXPECT_EQ(90000ULL, options.deadline_threshold_ms());
   EXPECT_EQ(2000ULL, options.slow_threshold_ms());
+  EXPECT_EQ(0ULL, options.shard_index());
+  EXPECT_EQ(0ULL, options.total_shards());
   EXPECT_EQ("auto", options.color());
   EXPECT_EQ("", options.xml_file());
   EXPECT_EQ("", options.filter());
   EXPECT_EQ(1, options.num_iterations());
   EXPECT_TRUE(options.print_time());
-  EXPECT_FALSE(options.gtest_format());
+  EXPECT_TRUE(options.gtest_format());
   EXPECT_FALSE(options.allow_disabled_tests());
   EXPECT_FALSE(options.list_tests());
   EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
@@ -100,6 +102,35 @@ TEST(OptionsTest, gtest_format_error_argument) {
   capture.Stop();
   ASSERT_FALSE(parsed) << "Process did not fail properly.";
   EXPECT_EQ("--gtest_format does not take an argument.\n", capture.str());
+}
+
+TEST(OptionsTest, no_gtest_format) {
+  std::vector<const char*> cur_args{"ignore", "--no_gtest_format"};
+  std::vector<const char*> child_args;
+  Options options;
+  ASSERT_TRUE(options.Process(cur_args, &child_args));
+  EXPECT_FALSE(options.gtest_format());
+  EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
+}
+
+TEST(OptionsTest, no_gtest_format_and_gtest_format) {
+  std::vector<const char*> cur_args{"ignore", "--no_gtest_format", "--gtest_format"};
+  std::vector<const char*> child_args;
+  Options options;
+  ASSERT_TRUE(options.Process(cur_args, &child_args));
+  EXPECT_FALSE(options.gtest_format());
+  EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
+}
+
+TEST(OptionsTest, no_gtest_format_error_argument) {
+  CapturedStdout capture;
+  std::vector<const char*> cur_args{"ignore", "--no_gtest_format=not_allowed"};
+  std::vector<const char*> child_args;
+  Options options;
+  bool parsed = options.Process(cur_args, &child_args);
+  capture.Stop();
+  ASSERT_FALSE(parsed) << "Process did not fail properly.";
+  EXPECT_EQ("--no_gtest_format does not take an argument.\n", capture.str());
 }
 
 TEST(OptionsTest, gtest_list_tests) {
@@ -256,6 +287,126 @@ TEST(OptionsTest, slow_threshold_ms_error_illegal_value) {
   capture.Stop();
   ASSERT_FALSE(parsed) << "Process did not fail properly.";
   EXPECT_EQ("--slow_threshold_ms requires a number greater than zero.\n", capture.str());
+}
+
+TEST(OptionsTest, shard_index) {
+  ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "100", 1));
+
+  std::vector<const char*> cur_args{"ignore"};
+  std::vector<const char*> child_args;
+  Options options;
+  ASSERT_TRUE(options.Process(cur_args, &child_args));
+  EXPECT_EQ(100ULL, options.shard_index());
+  EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
+
+  ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "0", 1));
+  ASSERT_TRUE(options.Process(cur_args, &child_args));
+  EXPECT_EQ(0ULL, options.shard_index());
+  EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
+
+  ASSERT_NE(-1, unsetenv("GTEST_SHARD_INDEX"));
+}
+
+TEST(OptionsTest, shard_index_error_no_value) {
+  ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "", 1));
+
+  CapturedStdout capture;
+  std::vector<const char*> cur_args{"ignore"};
+  std::vector<const char*> child_args;
+  Options options;
+  bool parsed = options.Process(cur_args, &child_args);
+  capture.Stop();
+  ASSERT_FALSE(parsed) << "Process did not fail properly.";
+  EXPECT_EQ("env[GTEST_SHARD_INDEX] requires an argument.\n", capture.str());
+
+  ASSERT_NE(-1, unsetenv("GTEST_SHARD_INDEX"));
+}
+
+TEST(OptionsTest, shard_index_error_not_a_number) {
+  ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "bad", 1));
+
+  CapturedStdout capture;
+  std::vector<const char*> cur_args{"ignore"};
+  std::vector<const char*> child_args;
+  Options options;
+  bool parsed = options.Process(cur_args, &child_args);
+  capture.Stop();
+  ASSERT_FALSE(parsed) << "Process did not fail properly.";
+  EXPECT_EQ("env[GTEST_SHARD_INDEX] value is not formatted as a numeric value (bad)\n",
+            capture.str());
+
+  ASSERT_NE(-1, unsetenv("GTEST_SHARD_INDEX"));
+}
+
+TEST(OptionsTest, shard_index_error_not_from_env) {
+  CapturedStdout capture;
+  std::vector<const char*> cur_args{"ignore", "--gtest_shard_index=100"};
+  std::vector<const char*> child_args;
+  Options options;
+  bool parsed = options.Process(cur_args, &child_args);
+  capture.Stop();
+  ASSERT_FALSE(parsed) << "Process did not fail properly.";
+  EXPECT_EQ("--gtest_shard_index is only supported as an environment variable.\n", capture.str());
+}
+
+TEST(OptionsTest, total_shards) {
+  ASSERT_NE(-1, setenv("GTEST_TOTAL_SHARDS", "500", 1));
+
+  std::vector<const char*> cur_args{"ignore"};
+  std::vector<const char*> child_args;
+  Options options;
+  ASSERT_TRUE(options.Process(cur_args, &child_args));
+  EXPECT_EQ(500ULL, options.total_shards());
+  EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
+
+  ASSERT_NE(-1, setenv("GTEST_TOTAL_SHARDS", "0", 1));
+  ASSERT_TRUE(options.Process(cur_args, &child_args));
+  EXPECT_EQ(0ULL, options.total_shards());
+  EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);
+
+  ASSERT_NE(-1, unsetenv("GTEST_TOTAL_SHARDS"));
+}
+
+TEST(OptionsTest, total_shards_error_no_value) {
+  ASSERT_NE(-1, setenv("GTEST_TOTAL_SHARDS", "", 1));
+
+  CapturedStdout capture;
+  std::vector<const char*> cur_args{"ignore"};
+  std::vector<const char*> child_args;
+  Options options;
+  bool parsed = options.Process(cur_args, &child_args);
+  capture.Stop();
+  ASSERT_FALSE(parsed) << "Process did not fail properly.";
+  EXPECT_EQ("env[GTEST_TOTAL_SHARDS] requires an argument.\n", capture.str());
+
+  ASSERT_NE(-1, unsetenv("GTEST_TOTAL_SHARDS"));
+}
+
+TEST(OptionsTest, total_shards_error_not_a_number) {
+  ASSERT_NE(-1, setenv("GTEST_TOTAL_SHARDS", "bad", 1));
+
+  CapturedStdout capture;
+  std::vector<const char*> cur_args{"ignore"};
+  std::vector<const char*> child_args;
+  Options options;
+  bool parsed = options.Process(cur_args, &child_args);
+  capture.Stop();
+  ASSERT_FALSE(parsed) << "Process did not fail properly.";
+  EXPECT_EQ("env[GTEST_TOTAL_SHARDS] value is not formatted as a numeric value (bad)\n",
+            capture.str());
+
+  ASSERT_NE(-1, unsetenv("GTEST_TOTAL_SHARDS"));
+}
+
+TEST(OptionsTest, total_shards_error_not_from_env) {
+  CapturedStdout capture;
+  std::vector<const char*> cur_args{"ignore", "--gtest_total_shards=100"};
+  std::vector<const char*> child_args;
+  Options options;
+  bool parsed = options.Process(cur_args, &child_args);
+  capture.Stop();
+  ASSERT_FALSE(parsed) << "Process did not fail properly.";
+  EXPECT_EQ("--gtest_total_shards is only supported as an environment variable.\n", capture.str());
 }
 
 TEST(OptionsTest, gtest_color) {
@@ -491,7 +642,7 @@ TEST(OptionsTest, verify_non_env_variables) {
   EXPECT_EQ("", options.filter());
   EXPECT_EQ(1, options.num_iterations());
   EXPECT_TRUE(options.print_time());
-  EXPECT_FALSE(options.gtest_format());
+  EXPECT_TRUE(options.gtest_format());
   EXPECT_FALSE(options.allow_disabled_tests());
   EXPECT_FALSE(options.list_tests());
   EXPECT_EQ(std::vector<const char*>{"ignore"}, child_args);

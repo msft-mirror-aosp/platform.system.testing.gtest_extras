@@ -31,6 +31,7 @@ enum TestResult : uint8_t {
   TEST_FAIL,
   TEST_XFAIL,
   TEST_TIMEOUT,
+  TEST_SKIPPED,
 };
 
 class Test {
@@ -49,6 +50,8 @@ class Test {
 
   void CloseFd();
 
+  void SetResultFromOutput();
+
   void AppendOutput(std::string& output) { output_ += output; }
   void AppendOutput(const char* output) { output_ += output; }
 
@@ -57,7 +60,7 @@ class Test {
 
   bool ExpectFail() const { return test_name_.find("xfail") == 0; }
 
-  const std::string& case_name() const { return case_name_; }
+  const std::string& suite_name() const { return suite_name_; }
   const std::string& test_name() const { return test_name_; }
   const std::string& name() const { return name_; }
 
@@ -80,7 +83,7 @@ class Test {
   const std::string& output() const { return output_; }
 
  private:
-  std::string case_name_;
+  std::string suite_name_;
   std::string test_name_;
   std::string name_;
   size_t test_index_;  // Index into test list.
