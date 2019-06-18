@@ -38,9 +38,7 @@ class Test {
  public:
   Test(std::tuple<std::string, std::string>& test, size_t test_index, size_t run_index, int fd);
 
-  void PrintGtestFormat();
-
-  void Print(bool gtest_format);
+  void Print();
 
   void Stop();
 
