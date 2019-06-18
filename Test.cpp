@@ -49,7 +49,7 @@ void Test::CloseFd() {
   fd_.reset();
 }
 
-void Test::PrintGtestFormat() {
+void Test::Print() {
   ColoredPrintf(COLOR_GREEN, "[ RUN      ]");
   printf(" %s\n", name_.c_str());
   printf("%s", output_.c_str());
@@ -71,41 +71,6 @@ void Test::PrintGtestFormat() {
     printf(" (%" PRId64 " ms)", RunTimeNs() / kNsPerMs);
   }
   printf("\n");
-  fflush(stdout);
-}
-
-void Test::Print(bool gtest_format) {
-  if (gtest_format) {
-    PrintGtestFormat();
-    return;
-  }
-
-  switch (result_) {
-    case TEST_XFAIL:
-    case TEST_PASS:
-      ColoredPrintf(COLOR_GREEN, "[    OK    ]");
-      break;
-    case TEST_XPASS:
-    case TEST_FAIL:
-      ColoredPrintf(COLOR_RED, "[  FAILED  ]");
-      break;
-    case TEST_TIMEOUT:
-      ColoredPrintf(COLOR_RED, "[  TIMEOUT ]");
-      break;
-    case TEST_SKIPPED:
-      ColoredPrintf(COLOR_GREEN, "[  SKIPPED ]");
-      break;
-    case TEST_NONE:
-      LOG(FATAL) << "Test result is TEST_NONE, this should not be possible.";
-  }
-
-  printf(" %s", name_.c_str());
-  if (::testing::GTEST_FLAG(print_time)) {
-    printf(" (%" PRId64 " ms)", (end_ns_ - start_ns_) / kNsPerMs);
-  }
-  printf("\n");
-
-  printf("%s", output_.c_str());
   fflush(stdout);
 }
 
