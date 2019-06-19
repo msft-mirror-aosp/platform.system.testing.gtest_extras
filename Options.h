@@ -44,7 +44,6 @@ class Options {
   uint64_t total_shards() const { return numerics_.at("gtest_total_shards"); }
 
   bool print_time() const { return bools_.at("gtest_print_time"); }
-  bool gtest_format() const { return bools_.at("gtest_format"); }
   bool allow_disabled_tests() const { return bools_.at("gtest_also_run_disabled_tests"); }
   bool list_tests() const { return bools_.at("gtest_list_tests"); }
 
