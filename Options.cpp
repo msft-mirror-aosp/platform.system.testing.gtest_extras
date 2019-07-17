@@ -43,8 +43,6 @@ constexpr uint64_t kDefaultSlowThresholdMs = 2000;
 const std::unordered_map<std::string, Options::ArgInfo> Options::kArgs = {
     {"deadline_threshold_ms", {FLAG_REQUIRES_VALUE, &Options::SetNumeric}},
     {"slow_threshold_ms", {FLAG_REQUIRES_VALUE, &Options::SetNumeric}},
-    {"gtest_format", {FLAG_NONE, &Options::SetBool}},
-    {"no_gtest_format", {FLAG_NONE, &Options::SetBool}},
     {"gtest_list_tests", {FLAG_NONE, &Options::SetBool}},
     {"gtest_filter", {FLAG_ENVIRONMENT_VARIABLE | FLAG_REQUIRES_VALUE, &Options::SetString}},
     {
@@ -71,6 +69,8 @@ const std::unordered_map<std::string, Options::ArgInfo> Options::kArgs = {
      {FLAG_ENVIRONMENT_VARIABLE | FLAG_REQUIRES_VALUE, &Options::SetNumericEnvOnly}},
     {"gtest_total_shards",
      {FLAG_ENVIRONMENT_VARIABLE | FLAG_REQUIRES_VALUE, &Options::SetNumericEnvOnly}},
+    // This does nothing, only added so that passing this option does not exit.
+    {"gtest_format", {FLAG_NONE, &Options::SetBool}},
 };
 
 static void PrintError(const std::string& arg, std::string msg, bool from_env) {
@@ -226,10 +226,11 @@ bool Options::Process(const std::vector<const char*>& args, std::vector<const ch
   strings_["gtest_filter"] = "";
   bools_.clear();
   bools_["gtest_print_time"] = ::testing::GTEST_FLAG(print_time);
-  bools_["gtest_format"] = true;
-  bools_["no_gtest_format"] = false;
   bools_["gtest_also_run_disabled_tests"] = ::testing::GTEST_FLAG(also_run_disabled_tests);
   bools_["gtest_list_tests"] = false;
+
+  // This does nothing, only added so that passing this option does not exit.
+  bools_["gtest_format"] = true;
 
   child_args->clear();
 
@@ -302,10 +303,6 @@ bool Options::Process(const std::vector<const char*>& args, std::vector<const ch
     }
   }
 
-  // If no_gtest_format was specified, it overrides gtest_format.
-  if (bools_.at("no_gtest_format")) {
-    bools_["gtest_format"] = false;
-  }
   return true;
 }
 

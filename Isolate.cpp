@@ -301,7 +301,7 @@ size_t Isolate::CheckTestsFinished() {
       }
     }
 
-    test->Print(options_.gtest_format());
+    test->Print();
 
     switch (test->result()) {
       case TEST_PASS:

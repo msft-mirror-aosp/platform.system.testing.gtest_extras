@@ -59,11 +59,6 @@ static void PrintHelpInfo() {
   printf(
       " will be called slow.\n"
       "      Only valid in isolation mode. Default slow threshold is 2000 ms.\n");
-  ColoredPrintf(COLOR_GREEN, "  --gtest_format\n");
-  printf(
-      "      Use the default gtest format, not the enhanced format.\n"
-      "\n"
-      "Default test option is ");
   ColoredPrintf(COLOR_GREEN, "-j");
   printf(
       ".\n"
