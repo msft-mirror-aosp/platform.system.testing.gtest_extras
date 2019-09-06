@@ -20,6 +20,7 @@
 #endif
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -54,6 +55,10 @@ class SystemTests : public ::testing::Test {
     raw_output_ = "";
     sanitized_output_ = "";
     exitcode_ = 0;
+
+    // Clear all environment variables to make sure the test isn't affected
+    // by GTEST_XXX ones.
+    clearenv();
   }
 
   void SanitizeOutput();
@@ -89,6 +94,10 @@ void SystemTests::SanitizeOutput() {
   // Change any error message like .../file.cc:(200) to file:(XX)
   sanitized_output_ = std::regex_replace(
       sanitized_output_, std::regex("\\b([^/\\s]+/)*[^/\\s]+:\\(\\d+\\)\\s"), "file:(XX) ");
+
+  // Change any terminated by signal message to ignore the actual signal name.
+  sanitized_output_ =
+      std::regex_replace(sanitized_output_, std::regex("( terminated by signal:) .*"), "$1 XXX");
 }
 
 void SystemTests::Exec(std::vector<const char*> args) {
@@ -400,11 +409,7 @@ TEST_F(SystemTests, verify_crash) {
       "Note: Google Test filter = *.DISABLED_crash\n"
       "[==========] Running 1 test from 1 test suite (20 jobs).\n"
       "[ RUN      ] SystemTests.DISABLED_crash\n"
-#if defined(__APPLE__)
-      "SystemTests.DISABLED_crash terminated by signal: Segmentation fault: 11.\n"
-#else
-      "SystemTests.DISABLED_crash terminated by signal: Segmentation fault.\n"
-#endif
+      "SystemTests.DISABLED_crash terminated by signal: XXX\n"
       "[  FAILED  ] SystemTests.DISABLED_crash (XX ms)\n"
       "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
       "[  PASSED  ] 0 tests.\n"
@@ -1363,21 +1368,45 @@ TEST(SystemTestsShard1, DISABLED_case1_test3) {}
 
 TEST(SystemTestsShard1, DISABLED_case1_test4) {}
 
-TEST(SystemTestsShard2, DISABLED_case2_test1) {}
+TEST(SystemTestsShard2, DISABLED_case2_test1) {
+  // Make sure this test always finishes second.
+  sleep(1);
+}
 
-TEST(SystemTestsShard2, DISABLED_case2_test2) {}
+TEST(SystemTestsShard2, DISABLED_case2_test2) {
+  // Make sure this test always finishes second.
+  sleep(1);
+}
 
-TEST(SystemTestsShard2, DISABLED_case2_test3) {}
+TEST(SystemTestsShard2, DISABLED_case2_test3) {
+  // Make sure this test always finishes second.
+  sleep(1);
+}
 
-TEST(SystemTestsShard2, DISABLED_case2_test4) {}
+TEST(SystemTestsShard2, DISABLED_case2_test4) {
+  // Make sure this test always finishes second.
+  sleep(1);
+}
 
-TEST(SystemTestsShard3, DISABLED_case3_test1) {}
+TEST(SystemTestsShard3, DISABLED_case3_test1) {
+  // Make sure this test always finishes third.
+  sleep(2);
+}
 
-TEST(SystemTestsShard3, DISABLED_case3_test2) {}
+TEST(SystemTestsShard3, DISABLED_case3_test2) {
+  // Make sure this test always finishes third.
+  sleep(2);
+}
 
-TEST(SystemTestsShard3, DISABLED_case3_test3) {}
+TEST(SystemTestsShard3, DISABLED_case3_test3) {
+  // Make sure this test always finishes third.
+  sleep(2);
+}
 
-TEST(SystemTestsShard3, DISABLED_case3_test4) {}
+TEST(SystemTestsShard3, DISABLED_case3_test4) {
+  // Make sure this test always finishes third.
+  sleep(2);
+}
 
 }  // namespace gtest_extras
 }  // namespace android
