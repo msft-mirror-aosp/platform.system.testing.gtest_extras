@@ -75,4 +75,6 @@ cc_test {
         "liblog",
     ],
     whole_static_libs: ["libgtest_isolated_main"],
+
+    test_suites: ["device-tests"],
 }
