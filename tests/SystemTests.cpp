@@ -37,6 +37,15 @@
 
 #include "NanoTime.h"
 
+#if defined(__APPLE__)
+extern char** environ;
+
+int clearenv() {
+  *environ = nullptr;
+  return 0;
+}
+#endif
+
 // Change the slow threshold for these tests since a few can take around
 // 20 seconds.
 extern "C" bool GetInitialArgs(const char*** args, size_t* num_args) {
