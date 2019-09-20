@@ -32,7 +32,7 @@ class Options {
   Options() = default;
   ~Options() = default;
 
-  bool Process(const std::vector<const char*>& args, std::vector<const char*>* child_args);
+  bool Process(const std::vector<const char*>& args, std::vector<char*>* child_args);
 
   size_t job_count() const { return job_count_; }
   int num_iterations() const { return num_iterations_; }
@@ -76,6 +76,9 @@ class Options {
 
   bool HandleArg(const std::string& arg, const std::string& value, const ArgInfo& info,
                  bool from_env = false);
+
+  bool ProcessFlagfile(const std::string& file, std::vector<char*>* child_args);
+  bool ProcessSingle(const char* arg, std::vector<char*>* child_args, bool allow_flagfile);
 
   bool SetNumeric(const std::string&, const std::string&, bool);
   bool SetNumericEnvOnly(const std::string&, const std::string&, bool);
