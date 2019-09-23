@@ -117,23 +117,40 @@ void Test::SetResultFromOutput() {
   //   <filename>:(<line_number>) Failure in test <testname>
   //   Skipped
   //   <Skip Message>
-  size_t line_end = output_.find('\n');
-  if (line_end == std::string::npos) {
-    return;
-  }
-  std::string second_line(output_.substr(line_end, 9));
-  if (output_.substr(line_end, 9) != "\nSkipped\n") {
-    return;
-  }
-  size_t failure_index = output_.find(" Failure in test ");
-  if (failure_index == std::string::npos || failure_index >= line_end) {
-    return;
-  }
 
-  // Only leave the output from the skip message.
-  output_ = output_.substr(line_end + 9);
-
-  result_ = TEST_SKIPPED;
+  // There can be multiple skip messages, so remove all of them.
+  size_t start_index = 0;
+  while (true) {
+    size_t skipped_index = output_.find("\nSkipped\n", start_index);
+    if (skipped_index == std::string::npos) {
+      return;
+    }
+    if (skipped_index == 0) {
+      // The output starts with Skipped, so skip over it and keep looking.
+      start_index = skipped_index + 9;
+      continue;
+    }
+    // Look backwards for start of line before "Skipped" message.
+    size_t failure_line_start = output_.rfind('\n', skipped_index - 1);
+    if (failure_line_start == std::string::npos) {
+      failure_line_start = 0;
+    }
+    skipped_index += 9;
+    size_t failure_index = output_.find(" Failure in test ", failure_line_start);
+    if (failure_index == std::string::npos || failure_index > skipped_index) {
+      // Could still be another skipped message matching the pattern after
+      // this one.
+      start_index = skipped_index - 1;
+      continue;
+    }
+    start_index = 0;
+    result_ = TEST_SKIPPED;
+    if (failure_line_start != 0) {
+      output_ = output_.substr(0, failure_line_start + 1) + output_.substr(skipped_index);
+    } else {
+      output_ = output_.substr(skipped_index);
+    }
+  }
 }
 
 }  // namespace gtest_extras
