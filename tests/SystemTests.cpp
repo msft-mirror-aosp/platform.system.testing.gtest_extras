@@ -1162,6 +1162,22 @@ TEST_F(SystemTests, verify_sharding_error_color) {
                                  std::vector<const char*>{"--gtest_color=yes"}));
 }
 
+TEST_F(SystemTests, verify_gtest_flagfile) {
+  TemporaryFile tf;
+  ASSERT_TRUE(android::base::WriteStringToFile("--gtest_print_time=0\n", tf.path));
+  std::string flagfile("--gtest_flagfile=");
+  flagfile += tf.path;
+  std::string expected =
+      "Note: Google Test filter = *.DISABLED_pass\n"
+      "[==========] Running 1 test from 1 test suite (20 jobs).\n"
+      "[ RUN      ] SystemTests.DISABLED_pass\n"
+      "[       OK ] SystemTests.DISABLED_pass\n"
+      "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
+      "[  PASSED  ] 1 test.\n";
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("*.DISABLED_pass", expected, 0, std::vector<const char*>{flagfile.c_str()}));
+}
+
 // These tests are used by the verify_disabled tests.
 TEST_F(SystemTests, always_pass) {}
 
