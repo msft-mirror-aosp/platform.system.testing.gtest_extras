@@ -25,6 +25,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <map>
 #include <regex>
 #include <sstream>
 #include <string>
@@ -79,6 +80,8 @@ class SystemTests : public ::testing::Test {
                             std::vector<const char*> extra_args = {});
   void Verify(const std::string& test_name, const std::string& expected_output,
               int expected_exitcode, std::vector<const char*> extra_args = {});
+  void VerifySortedOutput(const std::string& test_name, const std::string& expected_output,
+                          int expected_exitcode, std::vector<const char*> extra_args = {});
 
   std::string raw_output_;
   std::string sanitized_output_;
@@ -86,6 +89,58 @@ class SystemTests : public ::testing::Test {
   pid_t pid_;
   int fd_;
 };
+
+static std::string SortTestOutput(const std::string& output) {
+  std::map<std::string, std::string> tests;
+
+  std::vector<std::string> lines(android::base::Split(output, "\n"));
+  std::string prefix;
+  std::string suffix;
+  bool capture_prefix = true;
+  for (auto iter = lines.begin(); iter != lines.end(); ++iter) {
+    const char* line = iter->c_str();
+    if (line[0] == '\x1B') {
+      // Skip the escape sequence.
+      line = &line[7];
+    }
+    if (strncmp(line, "[ RUN      ]", 12) == 0) {
+      std::string test_name(iter->substr(12));
+      std::string test_body(*iter + '\n');
+      bool ended = false;
+      for (++iter; iter != lines.end(); ++iter) {
+        test_body += *iter + '\n';
+        line = iter->c_str();
+        if (line[0] == '\x1B') {
+          // Skip the escape sequence.
+          line = &line[7];
+        }
+        if (strncmp(line, "[ ", 2) == 0) {
+          ended = true;
+          break;
+        }
+      }
+      if (!ended) {
+        return output;
+      }
+      tests[test_name] = test_body;
+      capture_prefix = false;
+    } else if (capture_prefix) {
+      prefix += *iter + '\n';
+    } else {
+      suffix += *iter + '\n';
+    }
+  }
+
+  std::string new_output("Output Sorted\n" + prefix);
+  for (auto entry : tests) {
+    new_output += entry.second;
+  }
+  new_output += suffix;
+  if (android::base::EndsWith(new_output, "\n\n")) {
+    new_output.resize(new_output.size() - 1);
+  }
+  return new_output;
+}
 
 void SystemTests::SanitizeOutput() {
   // Change (100 ms to (XX ms
@@ -200,6 +255,17 @@ void SystemTests::Verify(const std::string& test_name, const std::string& expect
   ASSERT_EQ(expected_exitcode, exitcode_) << "Test output:\n" << raw_output_;
   if (!expected_output.empty()) {
     ASSERT_EQ(expected_output, sanitized_output_);
+  }
+}
+
+void SystemTests::VerifySortedOutput(const std::string& test_name,
+                                     const std::string& expected_output, int expected_exitcode,
+                                     std::vector<const char*> extra_args) {
+  ASSERT_NO_FATAL_FAILURE(RunTest(test_name, extra_args));
+  ASSERT_EQ(expected_exitcode, exitcode_) << "Test output:\n" << raw_output_;
+  if (!expected_output.empty()) {
+    std::string sorted_output = SortTestOutput(sanitized_output_);
+    ASSERT_EQ(expected_output, sorted_output);
   }
 }
 
@@ -1063,6 +1129,7 @@ TEST_F(SystemTests, verify_memory) {
 
 TEST_F(SystemTests, verify_sharding) {
   std::string expected =
+      "Output Sorted\n"
       "Note: Google Test filter = SystemTestsShard*.DISABLED*\n"
       "Note: This is test shard 1 of 4\n"
       "[==========] Running 3 tests from 3 test suites (20 jobs).\n"
@@ -1076,9 +1143,10 @@ TEST_F(SystemTests, verify_sharding) {
       "[  PASSED  ] 3 tests.\n";
   ASSERT_NE(-1, setenv("GTEST_TOTAL_SHARDS", "4", 1));
   ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "0", 1));
-  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0));
+  ASSERT_NO_FATAL_FAILURE(VerifySortedOutput("SystemTestsShard*.DISABLED*", expected, 0));
 
   expected =
+      "Output Sorted\n"
       "Note: Google Test filter = SystemTestsShard*.DISABLED*\n"
       "Note: This is test shard 2 of 4\n"
       "[==========] Running 3 tests from 3 test suites (20 jobs).\n"
@@ -1091,9 +1159,10 @@ TEST_F(SystemTests, verify_sharding) {
       "[==========] 3 tests from 3 test suites ran. (XX ms total)\n"
       "[  PASSED  ] 3 tests.\n";
   ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "1", 1));
-  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0));
+  ASSERT_NO_FATAL_FAILURE(VerifySortedOutput("SystemTestsShard*.DISABLED*", expected, 0));
 
   expected =
+      "Output Sorted\n"
       "Note: Google Test filter = SystemTestsShard*.DISABLED*\n"
       "Note: This is test shard 3 of 4\n"
       "[==========] Running 3 tests from 3 test suites (20 jobs).\n"
@@ -1106,9 +1175,10 @@ TEST_F(SystemTests, verify_sharding) {
       "[==========] 3 tests from 3 test suites ran. (XX ms total)\n"
       "[  PASSED  ] 3 tests.\n";
   ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "2", 1));
-  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0));
+  ASSERT_NO_FATAL_FAILURE(VerifySortedOutput("SystemTestsShard*.DISABLED*", expected, 0));
 
   expected =
+      "Output Sorted\n"
       "Note: Google Test filter = SystemTestsShard*.DISABLED*\n"
       "Note: This is test shard 4 of 4\n"
       "[==========] Running 3 tests from 3 test suites (20 jobs).\n"
@@ -1121,11 +1191,12 @@ TEST_F(SystemTests, verify_sharding) {
       "[==========] 3 tests from 3 test suites ran. (XX ms total)\n"
       "[  PASSED  ] 3 tests.\n";
   ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "3", 1));
-  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0));
+  ASSERT_NO_FATAL_FAILURE(VerifySortedOutput("SystemTestsShard*.DISABLED*", expected, 0));
 }
 
 TEST_F(SystemTests, verify_sharding_color) {
   std::string expected =
+      "Output Sorted\n"
       "\x1B[0;33mNote: Google Test filter = SystemTestsShard*.DISABLED*\x1B[m\n"
       "\x1B[0;33mNote: This is test shard 1 of 4\x1B[m\n"
       "\x1B[0;32m[==========]\x1B[m Running 3 tests from 3 test suites (20 jobs).\n"
@@ -1139,8 +1210,8 @@ TEST_F(SystemTests, verify_sharding_color) {
       "\x1B[0;32m[  PASSED  ]\x1B[m 3 tests.\n";
   ASSERT_NE(-1, setenv("GTEST_TOTAL_SHARDS", "4", 1));
   ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "0", 1));
-  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0,
-                                 std::vector<const char*>{"--gtest_color=yes"}));
+  ASSERT_NO_FATAL_FAILURE(VerifySortedOutput("SystemTestsShard*.DISABLED*", expected, 0,
+                                             std::vector<const char*>{"--gtest_color=yes"}));
 }
 
 TEST_F(SystemTests, verify_sharding_error) {
@@ -1394,43 +1465,27 @@ TEST(SystemTestsShard1, DISABLED_case1_test3) {}
 TEST(SystemTestsShard1, DISABLED_case1_test4) {}
 
 TEST(SystemTestsShard2, DISABLED_case2_test1) {
-  // Make sure this test always finishes second.
-  sleep(1);
 }
 
 TEST(SystemTestsShard2, DISABLED_case2_test2) {
-  // Make sure this test always finishes second.
-  sleep(1);
 }
 
 TEST(SystemTestsShard2, DISABLED_case2_test3) {
-  // Make sure this test always finishes second.
-  sleep(1);
 }
 
 TEST(SystemTestsShard2, DISABLED_case2_test4) {
-  // Make sure this test always finishes second.
-  sleep(1);
 }
 
 TEST(SystemTestsShard3, DISABLED_case3_test1) {
-  // Make sure this test always finishes third.
-  sleep(2);
 }
 
 TEST(SystemTestsShard3, DISABLED_case3_test2) {
-  // Make sure this test always finishes third.
-  sleep(2);
 }
 
 TEST(SystemTestsShard3, DISABLED_case3_test3) {
-  // Make sure this test always finishes third.
-  sleep(2);
 }
 
 TEST(SystemTestsShard3, DISABLED_case3_test4) {
-  // Make sure this test always finishes third.
-  sleep(2);
 }
 
 }  // namespace gtest_extras
