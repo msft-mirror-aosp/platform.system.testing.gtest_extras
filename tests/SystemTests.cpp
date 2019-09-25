@@ -331,6 +331,74 @@ TEST_F(SystemTests, verify_skip_with_message) {
   ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_with_message", expected, 0));
 }
 
+TEST_F(SystemTests, verify_skip_with_output_before_message) {
+  std::string expected =
+      "Note: Google Test filter = *.DISABLED_skip_with_output_before\n"
+      "[==========] Running 1 test from 1 test suite (20 jobs).\n"
+      "[ RUN      ] SystemTests.DISABLED_skip_with_output_before\n"
+      "This is the message before the skip message\n"
+      "This is the skip message\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_with_output_before (XX ms)\n"
+      "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
+      "[  PASSED  ] 0 tests.\n"
+      "[  SKIPPED ] 1 test, listed below:\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_with_output_before\n";
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_with_output_before", expected, 0));
+}
+
+TEST_F(SystemTests, verify_skip_with_output_after_message) {
+  std::string expected =
+      "Note: Google Test filter = *.DISABLED_skip_with_output_after\n"
+      "[==========] Running 1 test from 1 test suite (20 jobs).\n"
+      "[ RUN      ] SystemTests.DISABLED_skip_with_output_after\n"
+      "This is the skip message\n"
+      "This is the message after the skip message\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_with_output_after (XX ms)\n"
+      "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
+      "[  PASSED  ] 0 tests.\n"
+      "[  SKIPPED ] 1 test, listed below:\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_with_output_after\n";
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_with_output_after", expected, 0));
+}
+
+TEST_F(SystemTests, verify_skip_with_skipped_line) {
+  std::string expected =
+      "Note: Google Test filter = *.DISABLED_skip_with_skipped_line\n"
+      "[==========] Running 1 test from 1 test suite (20 jobs).\n"
+      "[ RUN      ] SystemTests.DISABLED_skip_with_skipped_line\n"
+      "\n"
+      "Skipped\n"
+      "This is the skip message 1\n"
+      "Skipped\n"
+      "This is the skip message 2\n"
+      "Skipped\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_with_skipped_line (XX ms)\n"
+      "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
+      "[  PASSED  ] 0 tests.\n"
+      "[  SKIPPED ] 1 test, listed below:\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_with_skipped_line\n";
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_with_skipped_line", expected, 0));
+}
+
+TEST_F(SystemTests, verify_skip_multiple) {
+  std::string expected =
+      "Note: Google Test filter = *.DISABLED_skip_multiple\n"
+      "[==========] Running 1 test from 1 test suite (20 jobs).\n"
+      "[ RUN      ] SystemTests.DISABLED_skip_multiple\n"
+      "This is not a skip message 1\n"
+      "This is the skip message 1\n"
+      "This is not a skip message 2\n"
+      "This is the skip message 2\n"
+      "This is the skip message 3\n"
+      "This is not a skip message 4\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_multiple (XX ms)\n"
+      "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
+      "[  PASSED  ] 0 tests.\n"
+      "[  SKIPPED ] 1 test, listed below:\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_multiple\n";
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_multiple", expected, 0));
+}
+
 TEST_F(SystemTests, verify_skip_no_print_time) {
   std::string expected =
       "Note: Google Test filter = *.DISABLED_skip_no_message\n"
@@ -1393,6 +1461,43 @@ TEST_F(SystemTests, DISABLED_skip_no_message) {
 
 TEST_F(SystemTests, DISABLED_skip_with_message) {
   GTEST_SKIP() << "This is a skip message";
+}
+
+TEST_F(SystemTests, DISABLED_skip_with_output_before) {
+  printf("This is the message before the skip message\n");
+  GTEST_SKIP() << "This is the skip message";
+}
+
+// Do not optimize this call away so that the print after the skip
+// will actually occur.
+void AvoidSkipStopping(int tag = 0) __attribute__((optnone)) {
+  if (tag == 0) {
+    GTEST_SKIP() << "This is the skip message";
+  } else {
+    GTEST_SKIP() << "This is the skip message " << std::to_string(tag);
+  }
+}
+
+TEST_F(SystemTests, DISABLED_skip_with_output_after) {
+  AvoidSkipStopping();
+  printf("This is the message after the skip message\n");
+}
+
+TEST_F(SystemTests, DISABLED_skip_with_skipped_line) {
+  printf("\nSkipped\n");
+  AvoidSkipStopping(1);
+  printf("Skipped\n");
+  AvoidSkipStopping(2);
+  printf("Skipped\n");
+}
+
+TEST_F(SystemTests, DISABLED_skip_multiple) {
+  printf("This is not a skip message 1\n");
+  AvoidSkipStopping(1);
+  printf("This is not a skip message 2\n");
+  AvoidSkipStopping(2);
+  AvoidSkipStopping(3);
+  printf("This is not a skip message 4\n");
 }
 
 class DISABLED_SystemTestsXfail : public ::testing::Test {};
