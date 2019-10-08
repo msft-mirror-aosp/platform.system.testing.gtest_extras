@@ -20,10 +20,12 @@
 #endif
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <map>
 #include <regex>
 #include <sstream>
 #include <string>
@@ -35,6 +37,15 @@
 #include <gtest/gtest.h>
 
 #include "NanoTime.h"
+
+#if defined(__APPLE__)
+extern char** environ;
+
+int clearenv() {
+  *environ = nullptr;
+  return 0;
+}
+#endif
 
 // Change the slow threshold for these tests since a few can take around
 // 20 seconds.
@@ -54,6 +65,10 @@ class SystemTests : public ::testing::Test {
     raw_output_ = "";
     sanitized_output_ = "";
     exitcode_ = 0;
+
+    // Clear all environment variables to make sure the test isn't affected
+    // by GTEST_XXX ones.
+    clearenv();
   }
 
   void SanitizeOutput();
@@ -65,6 +80,8 @@ class SystemTests : public ::testing::Test {
                             std::vector<const char*> extra_args = {});
   void Verify(const std::string& test_name, const std::string& expected_output,
               int expected_exitcode, std::vector<const char*> extra_args = {});
+  void VerifySortedOutput(const std::string& test_name, const std::string& expected_output,
+                          int expected_exitcode, std::vector<const char*> extra_args = {});
 
   std::string raw_output_;
   std::string sanitized_output_;
@@ -72,6 +89,58 @@ class SystemTests : public ::testing::Test {
   pid_t pid_;
   int fd_;
 };
+
+static std::string SortTestOutput(const std::string& output) {
+  std::map<std::string, std::string> tests;
+
+  std::vector<std::string> lines(android::base::Split(output, "\n"));
+  std::string prefix;
+  std::string suffix;
+  bool capture_prefix = true;
+  for (auto iter = lines.begin(); iter != lines.end(); ++iter) {
+    const char* line = iter->c_str();
+    if (line[0] == '\x1B') {
+      // Skip the escape sequence.
+      line = &line[7];
+    }
+    if (strncmp(line, "[ RUN      ]", 12) == 0) {
+      std::string test_name(iter->substr(12));
+      std::string test_body(*iter + '\n');
+      bool ended = false;
+      for (++iter; iter != lines.end(); ++iter) {
+        test_body += *iter + '\n';
+        line = iter->c_str();
+        if (line[0] == '\x1B') {
+          // Skip the escape sequence.
+          line = &line[7];
+        }
+        if (strncmp(line, "[ ", 2) == 0) {
+          ended = true;
+          break;
+        }
+      }
+      if (!ended) {
+        return output;
+      }
+      tests[test_name] = test_body;
+      capture_prefix = false;
+    } else if (capture_prefix) {
+      prefix += *iter + '\n';
+    } else {
+      suffix += *iter + '\n';
+    }
+  }
+
+  std::string new_output("Output Sorted\n" + prefix);
+  for (auto entry : tests) {
+    new_output += entry.second;
+  }
+  new_output += suffix;
+  if (android::base::EndsWith(new_output, "\n\n")) {
+    new_output.resize(new_output.size() - 1);
+  }
+  return new_output;
+}
 
 void SystemTests::SanitizeOutput() {
   // Change (100 ms to (XX ms
@@ -89,6 +158,10 @@ void SystemTests::SanitizeOutput() {
   // Change any error message like .../file.cc:(200) to file:(XX)
   sanitized_output_ = std::regex_replace(
       sanitized_output_, std::regex("\\b([^/\\s]+/)*[^/\\s]+:\\(\\d+\\)\\s"), "file:(XX) ");
+
+  // Change any terminated by signal message to ignore the actual signal name.
+  sanitized_output_ =
+      std::regex_replace(sanitized_output_, std::regex("( terminated by signal:) .*"), "$1 XXX");
 }
 
 void SystemTests::Exec(std::vector<const char*> args) {
@@ -185,6 +258,17 @@ void SystemTests::Verify(const std::string& test_name, const std::string& expect
   }
 }
 
+void SystemTests::VerifySortedOutput(const std::string& test_name,
+                                     const std::string& expected_output, int expected_exitcode,
+                                     std::vector<const char*> extra_args) {
+  ASSERT_NO_FATAL_FAILURE(RunTest(test_name, extra_args));
+  ASSERT_EQ(expected_exitcode, exitcode_) << "Test output:\n" << raw_output_;
+  if (!expected_output.empty()) {
+    std::string sorted_output = SortTestOutput(sanitized_output_);
+    ASSERT_EQ(expected_output, sorted_output);
+  }
+}
+
 TEST_F(SystemTests, verify_pass) {
   std::string expected =
       "Note: Google Test filter = *.DISABLED_pass\n"
@@ -245,6 +329,74 @@ TEST_F(SystemTests, verify_skip_with_message) {
       "[  SKIPPED ] 1 test, listed below:\n"
       "[  SKIPPED ] SystemTests.DISABLED_skip_with_message\n";
   ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_with_message", expected, 0));
+}
+
+TEST_F(SystemTests, verify_skip_with_output_before_message) {
+  std::string expected =
+      "Note: Google Test filter = *.DISABLED_skip_with_output_before\n"
+      "[==========] Running 1 test from 1 test suite (20 jobs).\n"
+      "[ RUN      ] SystemTests.DISABLED_skip_with_output_before\n"
+      "This is the message before the skip message\n"
+      "This is the skip message\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_with_output_before (XX ms)\n"
+      "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
+      "[  PASSED  ] 0 tests.\n"
+      "[  SKIPPED ] 1 test, listed below:\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_with_output_before\n";
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_with_output_before", expected, 0));
+}
+
+TEST_F(SystemTests, verify_skip_with_output_after_message) {
+  std::string expected =
+      "Note: Google Test filter = *.DISABLED_skip_with_output_after\n"
+      "[==========] Running 1 test from 1 test suite (20 jobs).\n"
+      "[ RUN      ] SystemTests.DISABLED_skip_with_output_after\n"
+      "This is the skip message\n"
+      "This is the message after the skip message\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_with_output_after (XX ms)\n"
+      "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
+      "[  PASSED  ] 0 tests.\n"
+      "[  SKIPPED ] 1 test, listed below:\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_with_output_after\n";
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_with_output_after", expected, 0));
+}
+
+TEST_F(SystemTests, verify_skip_with_skipped_line) {
+  std::string expected =
+      "Note: Google Test filter = *.DISABLED_skip_with_skipped_line\n"
+      "[==========] Running 1 test from 1 test suite (20 jobs).\n"
+      "[ RUN      ] SystemTests.DISABLED_skip_with_skipped_line\n"
+      "\n"
+      "Skipped\n"
+      "This is the skip message 1\n"
+      "Skipped\n"
+      "This is the skip message 2\n"
+      "Skipped\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_with_skipped_line (XX ms)\n"
+      "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
+      "[  PASSED  ] 0 tests.\n"
+      "[  SKIPPED ] 1 test, listed below:\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_with_skipped_line\n";
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_with_skipped_line", expected, 0));
+}
+
+TEST_F(SystemTests, verify_skip_multiple) {
+  std::string expected =
+      "Note: Google Test filter = *.DISABLED_skip_multiple\n"
+      "[==========] Running 1 test from 1 test suite (20 jobs).\n"
+      "[ RUN      ] SystemTests.DISABLED_skip_multiple\n"
+      "This is not a skip message 1\n"
+      "This is the skip message 1\n"
+      "This is not a skip message 2\n"
+      "This is the skip message 2\n"
+      "This is the skip message 3\n"
+      "This is not a skip message 4\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_multiple (XX ms)\n"
+      "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
+      "[  PASSED  ] 0 tests.\n"
+      "[  SKIPPED ] 1 test, listed below:\n"
+      "[  SKIPPED ] SystemTests.DISABLED_skip_multiple\n";
+  ASSERT_NO_FATAL_FAILURE(Verify("*.DISABLED_skip_multiple", expected, 0));
 }
 
 TEST_F(SystemTests, verify_skip_no_print_time) {
@@ -400,11 +552,7 @@ TEST_F(SystemTests, verify_crash) {
       "Note: Google Test filter = *.DISABLED_crash\n"
       "[==========] Running 1 test from 1 test suite (20 jobs).\n"
       "[ RUN      ] SystemTests.DISABLED_crash\n"
-#if defined(__APPLE__)
-      "SystemTests.DISABLED_crash terminated by signal: Segmentation fault: 11.\n"
-#else
-      "SystemTests.DISABLED_crash terminated by signal: Segmentation fault.\n"
-#endif
+      "SystemTests.DISABLED_crash terminated by signal: XXX\n"
       "[  FAILED  ] SystemTests.DISABLED_crash (XX ms)\n"
       "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
       "[  PASSED  ] 0 tests.\n"
@@ -1049,6 +1197,7 @@ TEST_F(SystemTests, verify_memory) {
 
 TEST_F(SystemTests, verify_sharding) {
   std::string expected =
+      "Output Sorted\n"
       "Note: Google Test filter = SystemTestsShard*.DISABLED*\n"
       "Note: This is test shard 1 of 4\n"
       "[==========] Running 3 tests from 3 test suites (20 jobs).\n"
@@ -1062,9 +1211,10 @@ TEST_F(SystemTests, verify_sharding) {
       "[  PASSED  ] 3 tests.\n";
   ASSERT_NE(-1, setenv("GTEST_TOTAL_SHARDS", "4", 1));
   ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "0", 1));
-  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0));
+  ASSERT_NO_FATAL_FAILURE(VerifySortedOutput("SystemTestsShard*.DISABLED*", expected, 0));
 
   expected =
+      "Output Sorted\n"
       "Note: Google Test filter = SystemTestsShard*.DISABLED*\n"
       "Note: This is test shard 2 of 4\n"
       "[==========] Running 3 tests from 3 test suites (20 jobs).\n"
@@ -1077,9 +1227,10 @@ TEST_F(SystemTests, verify_sharding) {
       "[==========] 3 tests from 3 test suites ran. (XX ms total)\n"
       "[  PASSED  ] 3 tests.\n";
   ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "1", 1));
-  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0));
+  ASSERT_NO_FATAL_FAILURE(VerifySortedOutput("SystemTestsShard*.DISABLED*", expected, 0));
 
   expected =
+      "Output Sorted\n"
       "Note: Google Test filter = SystemTestsShard*.DISABLED*\n"
       "Note: This is test shard 3 of 4\n"
       "[==========] Running 3 tests from 3 test suites (20 jobs).\n"
@@ -1092,9 +1243,10 @@ TEST_F(SystemTests, verify_sharding) {
       "[==========] 3 tests from 3 test suites ran. (XX ms total)\n"
       "[  PASSED  ] 3 tests.\n";
   ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "2", 1));
-  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0));
+  ASSERT_NO_FATAL_FAILURE(VerifySortedOutput("SystemTestsShard*.DISABLED*", expected, 0));
 
   expected =
+      "Output Sorted\n"
       "Note: Google Test filter = SystemTestsShard*.DISABLED*\n"
       "Note: This is test shard 4 of 4\n"
       "[==========] Running 3 tests from 3 test suites (20 jobs).\n"
@@ -1107,11 +1259,12 @@ TEST_F(SystemTests, verify_sharding) {
       "[==========] 3 tests from 3 test suites ran. (XX ms total)\n"
       "[  PASSED  ] 3 tests.\n";
   ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "3", 1));
-  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0));
+  ASSERT_NO_FATAL_FAILURE(VerifySortedOutput("SystemTestsShard*.DISABLED*", expected, 0));
 }
 
 TEST_F(SystemTests, verify_sharding_color) {
   std::string expected =
+      "Output Sorted\n"
       "\x1B[0;33mNote: Google Test filter = SystemTestsShard*.DISABLED*\x1B[m\n"
       "\x1B[0;33mNote: This is test shard 1 of 4\x1B[m\n"
       "\x1B[0;32m[==========]\x1B[m Running 3 tests from 3 test suites (20 jobs).\n"
@@ -1125,8 +1278,8 @@ TEST_F(SystemTests, verify_sharding_color) {
       "\x1B[0;32m[  PASSED  ]\x1B[m 3 tests.\n";
   ASSERT_NE(-1, setenv("GTEST_TOTAL_SHARDS", "4", 1));
   ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "0", 1));
-  ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 0,
-                                 std::vector<const char*>{"--gtest_color=yes"}));
+  ASSERT_NO_FATAL_FAILURE(VerifySortedOutput("SystemTestsShard*.DISABLED*", expected, 0,
+                                             std::vector<const char*>{"--gtest_color=yes"}));
 }
 
 TEST_F(SystemTests, verify_sharding_error) {
@@ -1146,6 +1299,22 @@ TEST_F(SystemTests, verify_sharding_error_color) {
   ASSERT_NE(-1, setenv("GTEST_SHARD_INDEX", "4", 1));
   ASSERT_NO_FATAL_FAILURE(Verify("SystemTestsShard*.DISABLED*", expected, 1,
                                  std::vector<const char*>{"--gtest_color=yes"}));
+}
+
+TEST_F(SystemTests, verify_gtest_flagfile) {
+  TemporaryFile tf;
+  ASSERT_TRUE(android::base::WriteStringToFile("--gtest_print_time=0\n", tf.path));
+  std::string flagfile("--gtest_flagfile=");
+  flagfile += tf.path;
+  std::string expected =
+      "Note: Google Test filter = *.DISABLED_pass\n"
+      "[==========] Running 1 test from 1 test suite (20 jobs).\n"
+      "[ RUN      ] SystemTests.DISABLED_pass\n"
+      "[       OK ] SystemTests.DISABLED_pass\n"
+      "[==========] 1 test from 1 test suite ran. (XX ms total)\n"
+      "[  PASSED  ] 1 test.\n";
+  ASSERT_NO_FATAL_FAILURE(
+      Verify("*.DISABLED_pass", expected, 0, std::vector<const char*>{flagfile.c_str()}));
 }
 
 // These tests are used by the verify_disabled tests.
@@ -1294,6 +1463,43 @@ TEST_F(SystemTests, DISABLED_skip_with_message) {
   GTEST_SKIP() << "This is a skip message";
 }
 
+TEST_F(SystemTests, DISABLED_skip_with_output_before) {
+  printf("This is the message before the skip message\n");
+  GTEST_SKIP() << "This is the skip message";
+}
+
+// Do not optimize this call away so that the print after the skip
+// will actually occur.
+void AvoidSkipStopping(int tag = 0) __attribute__((optnone)) {
+  if (tag == 0) {
+    GTEST_SKIP() << "This is the skip message";
+  } else {
+    GTEST_SKIP() << "This is the skip message " << std::to_string(tag);
+  }
+}
+
+TEST_F(SystemTests, DISABLED_skip_with_output_after) {
+  AvoidSkipStopping();
+  printf("This is the message after the skip message\n");
+}
+
+TEST_F(SystemTests, DISABLED_skip_with_skipped_line) {
+  printf("\nSkipped\n");
+  AvoidSkipStopping(1);
+  printf("Skipped\n");
+  AvoidSkipStopping(2);
+  printf("Skipped\n");
+}
+
+TEST_F(SystemTests, DISABLED_skip_multiple) {
+  printf("This is not a skip message 1\n");
+  AvoidSkipStopping(1);
+  printf("This is not a skip message 2\n");
+  AvoidSkipStopping(2);
+  AvoidSkipStopping(3);
+  printf("This is not a skip message 4\n");
+}
+
 class DISABLED_SystemTestsXfail : public ::testing::Test {};
 
 TEST_F(DISABLED_SystemTestsXfail, xfail_fail) {
@@ -1363,21 +1569,29 @@ TEST(SystemTestsShard1, DISABLED_case1_test3) {}
 
 TEST(SystemTestsShard1, DISABLED_case1_test4) {}
 
-TEST(SystemTestsShard2, DISABLED_case2_test1) {}
+TEST(SystemTestsShard2, DISABLED_case2_test1) {
+}
 
-TEST(SystemTestsShard2, DISABLED_case2_test2) {}
+TEST(SystemTestsShard2, DISABLED_case2_test2) {
+}
 
-TEST(SystemTestsShard2, DISABLED_case2_test3) {}
+TEST(SystemTestsShard2, DISABLED_case2_test3) {
+}
 
-TEST(SystemTestsShard2, DISABLED_case2_test4) {}
+TEST(SystemTestsShard2, DISABLED_case2_test4) {
+}
 
-TEST(SystemTestsShard3, DISABLED_case3_test1) {}
+TEST(SystemTestsShard3, DISABLED_case3_test1) {
+}
 
-TEST(SystemTestsShard3, DISABLED_case3_test2) {}
+TEST(SystemTestsShard3, DISABLED_case3_test2) {
+}
 
-TEST(SystemTestsShard3, DISABLED_case3_test3) {}
+TEST(SystemTestsShard3, DISABLED_case3_test3) {
+}
 
-TEST(SystemTestsShard3, DISABLED_case3_test4) {}
+TEST(SystemTestsShard3, DISABLED_case3_test4) {
+}
 
 }  // namespace gtest_extras
 }  // namespace android
