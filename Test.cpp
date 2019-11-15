@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include <regex>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -31,6 +32,8 @@
 
 namespace android {
 namespace gtest_extras {
+
+std::regex Test::skipped_regex_("(^|\\n)[^\\n]+:\\(\\d+\\) Skipped\\n");
 
 Test::Test(std::tuple<std::string, std::string>& test, size_t index, size_t run_index, int fd)
     : suite_name_(std::get<0>(test)),
@@ -114,42 +117,13 @@ void Test::SetResultFromOutput() {
 
   // Need to parse the output to determine if this test was skipped.
   // Format of a skipped test:
-  //   <filename>:(<line_number>) Failure in test <testname>
-  //   Skipped
+  //   <filename>:(<line_number>) Skipped
   //   <Skip Message>
 
-  // There can be multiple skip messages, so remove all of them.
-  size_t start_index = 0;
-  while (true) {
-    size_t skipped_index = output_.find("\nSkipped\n", start_index);
-    if (skipped_index == std::string::npos) {
-      return;
-    }
-    if (skipped_index == 0) {
-      // The output starts with Skipped, so skip over it and keep looking.
-      start_index = skipped_index + 9;
-      continue;
-    }
-    // Look backwards for start of line before "Skipped" message.
-    size_t failure_line_start = output_.rfind('\n', skipped_index - 1);
-    if (failure_line_start == std::string::npos) {
-      failure_line_start = 0;
-    }
-    skipped_index += 9;
-    size_t failure_index = output_.find(" Failure in test ", failure_line_start);
-    if (failure_index == std::string::npos || failure_index > skipped_index) {
-      // Could still be another skipped message matching the pattern after
-      // this one.
-      start_index = skipped_index - 1;
-      continue;
-    }
-    start_index = 0;
+  // If there are multiple skip messages, it doesn't matter, seeing
+  // even one indicates this is a skipped test.
+  if (std::regex_search(output_, skipped_regex_)) {
     result_ = TEST_SKIPPED;
-    if (failure_line_start != 0) {
-      output_ = output_.substr(0, failure_line_start + 1) + output_.substr(skipped_index);
-    } else {
-      output_ = output_.substr(skipped_index);
-    }
   }
 }
 
