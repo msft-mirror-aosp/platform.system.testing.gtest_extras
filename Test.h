@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <regex>
 #include <string>
 #include <tuple>
 
@@ -94,6 +95,8 @@ class Test {
 
   TestResult result_ = TEST_NONE;
   std::string output_;
+
+  static std::regex skipped_regex_;
 };
 
 }  // namespace gtest_extras
