@@ -22,7 +22,6 @@
 
 #include <vector>
 
-#include <android-base/file.h>
 #include <gtest/gtest.h>
 #include <gtest_extras/IsolateMain.h>
 
@@ -91,9 +90,7 @@ static bool RunInIsolationMode(std::vector<const char*>& args) {
 }  // namespace android
 
 // Tests that override this weak function can add default arguments.
-extern "C" bool __attribute__((weak)) GetInitialArgs(const char***, size_t*) {
-  return false;
-}
+extern "C" bool __attribute__((weak)) GetInitialArgs(const char***, size_t*);
 
 int IsolateMain(int argc, char** argv, char**) {
   std::vector<const char*> args{argv[0]};
@@ -126,7 +123,7 @@ int IsolateMain(int argc, char** argv, char**) {
 
   const char** start_args;
   size_t num_args;
-  if (GetInitialArgs(&start_args, &num_args)) {
+  if (GetInitialArgs != nullptr && GetInitialArgs(&start_args, &num_args)) {
     std::vector<const char*> initial_args;
     for (size_t i = 0; i < num_args; i++) {
       initial_args.push_back(start_args[i]);
@@ -149,5 +146,9 @@ int IsolateMain(int argc, char** argv, char**) {
   ::testing::GTEST_FLAG(print_time) = options.print_time();
 
   android::gtest_extras::Isolate isolate(options, child_args);
-  return isolate.Run();
+  int return_val = isolate.Run();
+  for (auto child_arg : child_args) {
+    free(child_arg);
+  }
+  return return_val;
 }
