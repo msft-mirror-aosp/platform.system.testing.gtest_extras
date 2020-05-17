@@ -27,11 +27,7 @@ cc_library_static {
         "Test.cpp",
     ],
 
-    // NOTE: libbase is re-exported by including them below.
-    // When Soong supports transitive static dependency includes, this
-    // library can be removed.
     whole_static_libs: [
-        "libbase",
         "libgtest",
     ],
 
