@@ -653,7 +653,10 @@ void TestResultPrinter::OnTestPartResult(const ::testing::TestPartResult& result
   }
 
   if (result.type() == ::testing::TestPartResult::kSkip) {
-    printf("%s:(%d) Skipped%s\n", result.file_name(), result.line_number(), result.message());
+    printf("%s:(%d) Skipped\n", result.file_name(), result.line_number());
+    if (*result.message()) {
+      printf("%s\n", result.message());
+    }
   } else {
     // Print failure message from the assertion (e.g. expected this and got that).
     printf("%s:(%d) Failure in test %s.%s\n%s\n", result.file_name(), result.line_number(),
