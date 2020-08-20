@@ -69,10 +69,8 @@ static void PrintHelpInfo() {
   printf(
       " will be called slow.\n"
       "      Only valid in isolation mode. Default slow threshold is 2000 ms.\n");
-  ColoredPrintf(COLOR_GREEN, "-j");
   printf(
-      ".\n"
-      "In isolation mode, you can send SIGQUIT to the parent process to show the\n"
+      "\nIn isolation mode, you can send SIGQUIT to the parent process to show the\n"
       "current running tests, or send SIGINT to the parent process to stop all\n"
       "running tests.\n"
       "\n");
