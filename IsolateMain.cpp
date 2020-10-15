@@ -97,7 +97,8 @@ static bool RunInIsolationMode(std::vector<const char*>& args) {
     }
   }
   if (!isolation_forced) {
-    // Check if we are running gdb/gdbserver. No need to be sneaky we are assuming no one is hiding.
+    // Check if we are running gdb/gdbserver/lldb/lldb-server. No need to be sneaky we are assuming
+    // no one is hiding.
     pid_t ppid = getppid();
     std::string exe_path = std::string("/proc/") + std::to_string(ppid) + "/exe";
     char buf[PATH_MAX + 1];
@@ -110,7 +111,8 @@ static bool RunInIsolationMode(std::vector<const char*>& args) {
     if ((len = TEMP_FAILURE_RETRY(readlink(exe_path.c_str(), buf, sizeof(buf) - 1))) > 0) {
       buf[len] = '\0';
       std::string_view file(basename(buf));
-      return file != "gdb" && file != "gdbserver" && file != "gdbserver64" && file != "gdbserver32";
+      return file != "gdb" && file != "gdbserver" && file != "gdbserver64" &&
+             file != "gdbserver32" && file != "lldb" && file != "lldb-server";
     }
     // If we can't figure out what our parent was just assume we are fine to isolate.
   }
