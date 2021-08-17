@@ -808,6 +808,10 @@ int Isolate::Run() {
 
     if (total_pass_tests_ + total_skipped_tests_ + total_xfail_tests_ != tests_.size()) {
       exit_code = 1;
+      if (options_.stop_on_error() && options_.num_iterations() > 1) {
+        printf("\nTerminating repeat run due to failing tests (iteration %d).\n", i + 1);
+        break;
+      }
     }
   }
 
