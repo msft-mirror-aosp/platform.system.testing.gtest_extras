@@ -102,7 +102,7 @@ static bool RunInIsolationMode(std::vector<const char*>& args) {
     pid_t ppid = getppid();
     std::string exe_path = std::string("/proc/") + std::to_string(ppid) + "/exe";
     char buf[PATH_MAX + 1];
-    size_t len;
+    ssize_t len;
     // NB We can't use things like android::base::* or std::filesystem::* due to linking
     // issues.
     // Since PATH_MAX is the longest a symlink can be in posix we don't need to
