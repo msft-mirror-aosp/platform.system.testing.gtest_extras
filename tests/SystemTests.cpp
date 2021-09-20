@@ -1200,7 +1200,7 @@ TEST_F(SystemTests, verify_memory) {
       memory_iteration++;
     }
   }
-  ASSERT_EQ(400, memory_iteration)
+  ASSERT_EQ(400U, memory_iteration)
       << "Did not find the expected 400 lines of memory data." << std::endl
       << "Raw output:" << std::endl
       << raw_output_;

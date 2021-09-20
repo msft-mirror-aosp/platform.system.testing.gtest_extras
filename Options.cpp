@@ -213,14 +213,14 @@ bool Options::HandleArg(const std::string& arg, const std::string& value, const 
 }
 
 static bool ReadFileToString(const std::string& file, std::string* contents) {
-  int fd = TEMP_FAILURE_RETRY(open(file.c_str(), O_RDONLY | O_CLOEXEC));
+  int fd = static_cast<int>(TEMP_FAILURE_RETRY(open(file.c_str(), O_RDONLY | O_CLOEXEC)));
   if (fd == -1) {
     return false;
   }
   char buf[4096];
   ssize_t bytes_read;
   while ((bytes_read = TEMP_FAILURE_RETRY(read(fd, &buf, sizeof(buf)))) > 0) {
-    contents->append(buf, bytes_read);
+    contents->append(buf, static_cast<size_t>(bytes_read));
   }
   close(fd);
   return true;
