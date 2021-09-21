@@ -77,7 +77,7 @@ static void PrintHelpInfo() {
 }
 
 static int GtestRun(std::vector<const char*>* args) {
-  int argc = args->size();
+  int argc = static_cast<int>(args->size());
   args->push_back(nullptr);
   ::testing::InitGoogleTest(&argc, const_cast<char**>(args->data()));
   return RUN_ALL_TESTS();
