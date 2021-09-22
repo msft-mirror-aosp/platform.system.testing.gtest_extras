@@ -561,7 +561,7 @@ TEST_F(OptionsTest, gtest_flagfile) {
   ASSERT_TRUE(options.Process(cur_args, &child_args_));
   EXPECT_EQ("no", options.color());
   EXPECT_FALSE(options.print_time());
-  EXPECT_EQ(10U, options.num_iterations());
+  EXPECT_EQ(10, options.num_iterations());
   EXPECT_THAT(child_args_, ElementsAre(StrEq("ignore"), StrEq("--gtest_color=no")));
 }
 
