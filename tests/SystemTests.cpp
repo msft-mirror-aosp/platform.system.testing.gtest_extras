@@ -1424,7 +1424,7 @@ TEST_F(SystemTests, DISABLED_fail) {
   ASSERT_EQ(1, 0);
 }
 
-TEST_F(SystemTests, DISABLED_crash) {
+TEST_F(SystemTests, DISABLED_crash) __attribute__((optnone)) {
   char* p = reinterpret_cast<char*>(static_cast<intptr_t>(atoi("0")));
   *p = 3;
 }
