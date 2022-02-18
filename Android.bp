@@ -64,6 +64,10 @@ cc_library_static {
 cc_test {
     name: "gtest_isolated_tests",
     host_supported: true,
+    tidy_timeout_srcs: [
+        "tests/OptionsTest.cpp",
+        "tests/SystemTests.cpp",
+    ],
     srcs: [
         "tests/OptionsTest.cpp",
         "tests/SystemTests.cpp",
