@@ -23,11 +23,10 @@
 #include <tuple>
 #include <vector>
 
-#include <android/log.h>
+#include <android-base/logging.h>
 #include <gtest/gtest.h>
 
 #include "Color.h"
-#include "Log.h"
 #include "NanoTime.h"
 #include "Test.h"
 
@@ -50,10 +49,7 @@ void Test::Stop() {
 }
 
 void Test::CloseFd() {
-  if (fd_ != -1) {
-    close(fd_);
-    fd_ = -1;
-  }
+  fd_.reset();
 }
 
 void Test::Print() {
@@ -89,7 +85,7 @@ bool Test::Read() {
       // Reading would block. Since this is not an error keep going.
       return true;
     }
-    FATAL_PLOG("Unexpected failure from read");
+    PLOG(FATAL) << "Unexpected failure from read";
     return false;
   }
 

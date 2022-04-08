@@ -20,6 +20,8 @@
 #include <string>
 #include <tuple>
 
+#include <android-base/unique_fd.h>
+
 namespace android {
 namespace gtest_extras {
 
@@ -36,7 +38,6 @@ enum TestResult : uint8_t {
 class Test {
  public:
   Test(std::tuple<std::string, std::string>& test, size_t test_index, size_t run_index, int fd);
-  ~Test() { CloseFd(); }
 
   void Print();
 
@@ -86,7 +87,7 @@ class Test {
   std::string name_;
   size_t test_index_;  // Index into test list.
   size_t run_index_;   // Index into running list.
-  int fd_ = -1;
+  android::base::unique_fd fd_;
 
   uint64_t start_ns_;
   uint64_t end_ns_ = 0;
