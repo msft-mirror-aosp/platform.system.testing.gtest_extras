@@ -74,6 +74,10 @@ cc_test {
     name: "gtest_isolated_tests",
     defaults: ["libgtest_isolated_defaults"],
     host_supported: true,
+    tidy_timeout_srcs: [
+        "tests/OptionsTest.cpp",
+        "tests/SystemTests.cpp",
+    ],
     srcs: [
         "tests/OptionsTest.cpp",
         "tests/SystemTests.cpp",
