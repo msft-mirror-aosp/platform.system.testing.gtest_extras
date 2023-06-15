@@ -28,6 +28,7 @@
 #include <charconv>
 #include <regex>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -78,16 +79,16 @@ const std::unordered_map<std::string, Options::ArgInfo> Options::kArgs = {
     {"gtest_format", {FLAG_NONE, &Options::SetBool}},
 };
 
-static void PrintError(const std::string& arg, std::string msg, bool from_env) {
+static void PrintError(const std::string& arg, std::string_view msg, bool from_env) {
   if (from_env) {
     std::string variable(arg);
     std::transform(variable.begin(), variable.end(), variable.begin(),
                    [](char c) { return std::toupper(c); });
-    printf("env[%s] %s\n", variable.c_str(), msg.c_str());
+    printf("env[%s] %s\n", variable.c_str(), msg.data());
   } else if (arg[0] == '-') {
-    printf("%s %s\n", arg.c_str(), msg.c_str());
+    printf("%s %s\n", arg.c_str(), msg.data());
   } else {
-    printf("--%s %s\n", arg.c_str(), msg.c_str());
+    printf("--%s %s\n", arg.c_str(), msg.data());
   }
 }
 
