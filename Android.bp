@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package {
+    default_team: "trendy_team_native_tools_libraries",
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
@@ -20,14 +21,19 @@ cc_defaults {
     name: "libgtest_isolated_defaults",
     vendor_available: true,
     product_available: true,
-    native_bridge_supported: true
+    native_bridge_supported: true,
 }
 
 cc_library_static {
     name: "libgtest_isolated",
     defaults: ["libgtest_isolated_defaults"],
     host_supported: true,
-    cflags: ["-Wall", "-Werror", "-Wextra", "-Wconversion"],
+    cflags: [
+        "-Wall",
+        "-Werror",
+        "-Wextra",
+        "-Wconversion",
+    ],
     export_include_dirs: ["include"],
 
     srcs: [
@@ -54,7 +60,11 @@ cc_library_static {
     name: "libgtest_isolated_main",
     defaults: ["libgtest_isolated_defaults"],
     host_supported: true,
-    cflags: ["-Wall", "-Werror", "-Wextra"],
+    cflags: [
+        "-Wall",
+        "-Werror",
+        "-Wextra",
+    ],
     srcs: [
         "Main.cpp",
     ],
@@ -82,7 +92,11 @@ cc_test {
         "tests/OptionsTest.cpp",
         "tests/SystemTests.cpp",
     ],
-    cflags: ["-Wall", "-Werror", "-Wextra"],
+    cflags: [
+        "-Wall",
+        "-Werror",
+        "-Wextra",
+    ],
 
     shared_libs: [
         "libbase",
