@@ -110,9 +110,17 @@ static bool RunInIsolationMode(std::vector<const char*>& args) {
     // just a QOL thing so it's fine if we are wrong.
     if ((len = TEMP_FAILURE_RETRY(readlink(exe_path.c_str(), buf, sizeof(buf) - 1))) > 0) {
       buf[len] = '\0';
-      std::string_view file(basename(buf));
-      return file != "gdb" && file != "gdbserver" && file != "gdbserver64" &&
-             file != "gdbserver32" && file != "lldb" && file != "lldb-server";
+      static std::set<std::string_view> debuggers{"gdb",
+                                                  "gdbserver",
+                                                  "gdbserver64",
+                                                  "lldb",
+                                                  "lldb-server",
+                                                  "arm-lldb-server",
+                                                  "arm64-lldb-server",
+                                                  "riscv64-lldb-server",
+                                                  "x86-lldb-server",
+                                                  "x86_64-lldb-server"};
+      return debuggers.find(basename(buf)) == debuggers.end();
     }
     // If we can't figure out what our parent was just assume we are fine to isolate.
   }
