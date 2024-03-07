@@ -31,6 +31,9 @@
 #include <vector>
 
 #include <gtest/gtest.h>
+#if defined(__BIONIC__)
+#include <sys/system_properties.h>
+#endif
 
 #include "Color.h"
 #include "Isolate.h"
@@ -747,9 +750,26 @@ void Isolate::WriteXmlResults(uint64_t elapsed_time_ns, time_t start_time) {
   fclose(fp);
 }
 
+// Note: We can't use android::base::HwTimeoutMultiplier due to linking issues.
+uint64_t GetHwTimeoutMultiplier() {
+#if defined(__BIONIC__)
+  char multiplier_string[PROP_VALUE_MAX] = {};
+  if (__system_property_get("ro.hw_timeout_multiplier", multiplier_string) != 0) {
+    char* end = nullptr;
+    auto multiplier = strtoull(multiplier_string, &end, 10);
+    if (end != nullptr && *end == '\0' && multiplier != ULLONG_MAX) {
+      return multiplier;
+    }
+  }
+#endif
+
+  return 1;
+}
+
 int Isolate::Run() {
-  slow_threshold_ns_ = options_.slow_threshold_ms() * kNsPerMs;
-  deadline_threshold_ns_ = options_.deadline_threshold_ms() * kNsPerMs;
+  uint64_t multiplier = GetHwTimeoutMultiplier();
+  slow_threshold_ns_ = options_.slow_threshold_ms() * kNsPerMs * multiplier;
+  deadline_threshold_ns_ = options_.deadline_threshold_ms() * kNsPerMs * multiplier;
 
   bool sharding_enabled = options_.total_shards() > 1;
   if (sharding_enabled &&

@@ -32,6 +32,7 @@
 #include <vector>
 
 #include <android-base/file.h>
+#include <android-base/properties.h>
 #include <android-base/strings.h>
 #include <android-base/test_utils.h>
 #include <gtest/gtest.h>
@@ -82,6 +83,8 @@ class SystemTests : public ::testing::Test {
               int expected_exitcode, std::vector<const char*> extra_args = {});
   void VerifySortedOutput(const std::string& test_name, const std::string& expected_output,
                           int expected_exitcode, std::vector<const char*> extra_args = {});
+
+  static void delay(int seconds) { sleep(seconds * android::base::HwTimeoutMultiplier()); }
 
   std::string raw_output_;
   std::string sanitized_output_;
@@ -849,12 +852,18 @@ TEST_F(SystemTests, verify_repeat) {
   time_ns = NanoTime() - time_ns;
   // Make sure that the total test time is about 18 seconds.
   double seconds = double(time_ns) / 1000000000;
-  ASSERT_LE(18.0, seconds) << "Repeat test should take at least 18 seconds.\n"
-                           << "Test output:\n"
-                           << raw_output_;
-  ASSERT_GT(20.0, seconds) << "Repeat test should take about 18 seconds.\n"
-                           << "Test output:\n"
-                           << raw_output_;
+  // Adjust expected times by multipliers.
+  double min_time = 18.0 * android::base::HwTimeoutMultiplier();
+  double max_time = 20.0 * android::base::HwTimeoutMultiplier();
+  int expected_seconds = 18 * android::base::HwTimeoutMultiplier();
+  ASSERT_LE(min_time, seconds) << "Repeat test should take at least " << expected_seconds
+                               << " seconds.\n"
+                               << "Test output:\n"
+                               << raw_output_;
+  ASSERT_GT(max_time, seconds) << "Repeat test should take about " << expected_seconds
+                               << " seconds.\n"
+                               << "Test output:\n"
+                               << raw_output_;
 }
 
 TEST_F(SystemTests, verify_results_as_tests_finish) {
@@ -878,9 +887,11 @@ TEST_F(SystemTests, verify_results_as_tests_finish) {
     if (output.find("[       OK ] SystemTests.DISABLED_order_2") != std::string::npos) {
       uint64_t test_ns = NanoTime() - time_ns;
       double test_sec = double(test_ns) / 1000000000;
+      double min_time = 3.0 * android::base::HwTimeoutMultiplier();
+      double max_time = 4.5 * android::base::HwTimeoutMultiplier();
       // This should happen after 3 seconds, but before 4.5 seconds.
-      ASSERT_LE(3.0, test_sec) << "Test output:\n" << output;
-      ASSERT_GT(4.5, test_sec) << "Test output:\n" << output;
+      ASSERT_LE(min_time, test_sec) << "Test output:\n" << output;
+      ASSERT_GT(max_time, test_sec) << "Test output:\n" << output;
       break;
     }
   }
@@ -902,7 +913,8 @@ TEST_F(SystemTests, verify_results_as_tests_finish) {
   time_ns = NanoTime() - time_ns;
   ASSERT_EQ(pid_, TEMP_FAILURE_RETRY(waitpid(pid_, nullptr, 0))) << "Test output:\n" << output;
   // Verify that the total test time is > 6 seconds.
-  ASSERT_LE(6.0, double(time_ns) / 1000000000) << "Test output:\n" << output;
+  double max_time = 6.0 * android::base::HwTimeoutMultiplier();
+  ASSERT_LE(max_time, double(time_ns) / 1000000000) << "Test output:\n" << output;
 }
 
 TEST_F(SystemTests, verify_xml) {
@@ -1043,7 +1055,7 @@ TEST_F(SystemTests, verify_SIGINT) {
                                 "-j20"});
   // It is expected that all of the tests will be sleeping so nothing will
   // complete by the time the signal is sent.
-  sleep(1);
+  delay(1);
   ASSERT_NE(-1, kill(pid_, SIGINT));
 
   std::string output;
@@ -1077,7 +1089,7 @@ TEST_F(SystemTests, verify_SIGQUIT) {
                                 "-j20"});
   // It is expected that all of the tests will be sleeping so nothing will
   // complete by the time the signal is sent.
-  sleep(1);
+  delay(1);
   ASSERT_NE(-1, kill(pid_, SIGQUIT));
 
   std::vector<char> buffer(4096);
@@ -1122,7 +1134,7 @@ TEST_F(SystemTests, verify_SIGQUIT_after_test_finish) {
                                 "--gtest_also_run_disabled_tests", "-j20"});
   // It is expected that one tests will have finished, but the rest will still
   // be running.
-  sleep(1);
+  delay(1);
   ASSERT_NE(-1, kill(pid_, SIGQUIT));
 
   std::vector<char> buffer(4096);
@@ -1432,31 +1444,31 @@ TEST_F(SystemTests, DISABLED_crash) __attribute__((optnone)) {
 TEST_F(SystemTests, DISABLED_sigquit_no_sleep) {}
 
 TEST_F(SystemTests, DISABLED_sigquit_sleep_5) {
-  sleep(5);
+  delay(5);
 }
 
 TEST_F(SystemTests, DISABLED_sigquit_sleep_6) {
-  sleep(6);
+  delay(6);
 }
 
 TEST_F(SystemTests, DISABLED_sleep_forever) {
   while (true) {
-    sleep(10000);
+    delay(10000);
   }
 }
 
 TEST_F(SystemTests, DISABLED_sleep5) {
-  sleep(5);
+  delay(5);
 }
 
 // These tests will finish 1, 2, 3 in non-isolated mode and 3, 2, 1 in isolated
 // mode.
 TEST_F(SystemTests, DISABLED_order_1) {
-  sleep(6);
+  delay(6);
 }
 
 TEST_F(SystemTests, DISABLED_order_2) {
-  sleep(3);
+  delay(3);
 }
 
 TEST_F(SystemTests, DISABLED_order_3) {}
@@ -1514,11 +1526,11 @@ TEST_F(SystemTests, DISABLED_all_skip_2) {
 }
 
 TEST_F(SystemTests, DISABLED_all_slow_1) {
-  sleep(3);
+  delay(3);
 }
 
 TEST_F(SystemTests, DISABLED_all_slow_2) {
-  sleep(3);
+  delay(3);
 }
 
 TEST_F(SystemTests, DISABLED_all_fail_1) {
@@ -1530,23 +1542,23 @@ TEST_F(SystemTests, DISABLED_all_fail_2) {
 }
 
 TEST_F(SystemTests, DISABLED_all_timeout_1) {
-  sleep(6);
+  delay(6);
 }
 
 TEST_F(SystemTests, DISABLED_all_timeout_2) {
-  sleep(6);
+  delay(6);
 }
 
 TEST_F(SystemTests, DISABLED_job_1) {
-  sleep(5);
+  delay(5);
 }
 
 TEST_F(SystemTests, DISABLED_job_2) {
-  sleep(3);
+  delay(3);
 }
 
 TEST_F(SystemTests, DISABLED_job_3) {
-  sleep(4);
+  delay(4);
 }
 
 TEST_F(SystemTests, DISABLED_skip_no_message) {
