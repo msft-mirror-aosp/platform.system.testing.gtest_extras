@@ -110,9 +110,17 @@ static bool RunInIsolationMode(std::vector<const char*>& args) {
     // just a QOL thing so it's fine if we are wrong.
     if ((len = TEMP_FAILURE_RETRY(readlink(exe_path.c_str(), buf, sizeof(buf) - 1))) > 0) {
       buf[len] = '\0';
-      std::string_view file(basename(buf));
-      return file != "gdb" && file != "gdbserver" && file != "gdbserver64" &&
-             file != "gdbserver32" && file != "lldb" && file != "lldb-server";
+      static std::set<std::string_view> debuggers{"gdb",
+                                                  "gdbserver",
+                                                  "gdbserver64",
+                                                  "lldb",
+                                                  "lldb-server",
+                                                  "arm-lldb-server",
+                                                  "arm64-lldb-server",
+                                                  "riscv64-lldb-server",
+                                                  "x86-lldb-server",
+                                                  "x86_64-lldb-server"};
+      return debuggers.find(basename(buf)) == debuggers.end();
     }
     // If we can't figure out what our parent was just assume we are fine to isolate.
   }
@@ -166,20 +174,20 @@ int IsolateMain(int argc, char** argv, char**) {
 
   std::vector<char*> child_args;
   android::gtest_extras::Options options;
-  if (!options.Process(args, &child_args)) {
-    return 1;
+  int return_val = 1;
+  if (options.Process(args, &child_args)) {
+    // Add the --no_isolate option to force child processes not to rerun
+    // in isolation mode.
+    child_args.push_back(strdup("--no_isolate"));
+
+    // Set the flag values.
+    ::testing::GTEST_FLAG(color) = options.color();
+    ::testing::GTEST_FLAG(print_time) = options.print_time();
+
+    android::gtest_extras::Isolate isolate(options, child_args);
+    return_val = isolate.Run();
   }
 
-  // Add the --no_isolate option to force child processes not to rerun
-  // in isolation mode.
-  child_args.push_back(strdup("--no_isolate"));
-
-  // Set the flag values.
-  ::testing::GTEST_FLAG(color) = options.color();
-  ::testing::GTEST_FLAG(print_time) = options.print_time();
-
-  android::gtest_extras::Isolate isolate(options, child_args);
-  int return_val = isolate.Run();
   for (auto child_arg : child_args) {
     free(child_arg);
   }
