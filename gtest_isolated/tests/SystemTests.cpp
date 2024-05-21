@@ -1675,29 +1675,21 @@ TEST(SystemTestsShard1, DISABLED_case1_test3) {}
 
 TEST(SystemTestsShard1, DISABLED_case1_test4) {}
 
-TEST(SystemTestsShard2, DISABLED_case2_test1) {
-}
+TEST(SystemTestsShard2, DISABLED_case2_test1) {}
 
-TEST(SystemTestsShard2, DISABLED_case2_test2) {
-}
+TEST(SystemTestsShard2, DISABLED_case2_test2) {}
 
-TEST(SystemTestsShard2, DISABLED_case2_test3) {
-}
+TEST(SystemTestsShard2, DISABLED_case2_test3) {}
 
-TEST(SystemTestsShard2, DISABLED_case2_test4) {
-}
+TEST(SystemTestsShard2, DISABLED_case2_test4) {}
 
-TEST(SystemTestsShard3, DISABLED_case3_test1) {
-}
+TEST(SystemTestsShard3, DISABLED_case3_test1) {}
 
-TEST(SystemTestsShard3, DISABLED_case3_test2) {
-}
+TEST(SystemTestsShard3, DISABLED_case3_test2) {}
 
-TEST(SystemTestsShard3, DISABLED_case3_test3) {
-}
+TEST(SystemTestsShard3, DISABLED_case3_test3) {}
 
-TEST(SystemTestsShard3, DISABLED_case3_test4) {
-}
+TEST(SystemTestsShard3, DISABLED_case3_test4) {}
 
 }  // namespace gtest_extras
 }  // namespace android
