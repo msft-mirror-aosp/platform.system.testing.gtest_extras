@@ -8,5 +8,10 @@
     {
       "name": "gtest_isolated_tests"
     }
+  ],
+  "postsubmit": [
+    {
+      "name": "gtestifier_test"
+    }
   ]
 }
