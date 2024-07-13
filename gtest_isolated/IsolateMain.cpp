@@ -120,7 +120,7 @@ static bool RunInIsolationMode(std::vector<const char*>& args) {
                                                   "riscv64-lldb-server",
                                                   "x86-lldb-server",
                                                   "x86_64-lldb-server"};
-      return debuggers.find(basename(buf)) == debuggers.end();
+      return !debuggers.contains(basename(buf));
     }
     // If we can't figure out what our parent was just assume we are fine to isolate.
   }
