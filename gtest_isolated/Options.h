@@ -37,6 +37,7 @@ class Options {
   size_t job_count() const { return job_count_; }
   int num_iterations() const { return num_iterations_; }
   bool stop_on_error() const { return stop_on_error_; }
+  const std::string& error() const { return error_; }
 
   uint64_t deadline_threshold_ms() const { return numerics_.at("deadline_threshold_ms"); }
   uint64_t slow_threshold_ms() const { return numerics_.at("slow_threshold_ms"); }
@@ -56,6 +57,7 @@ class Options {
   size_t job_count_;
   int num_iterations_;
   bool stop_on_error_;
+  std::string error_;
 
   std::unordered_map<std::string, bool> bools_;
   std::unordered_map<std::string, std::string> strings_;
