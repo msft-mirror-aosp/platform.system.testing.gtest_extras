@@ -79,30 +79,32 @@ const std::unordered_map<std::string, Options::ArgInfo> Options::kArgs = {
     {"gtest_format", {FLAG_NONE, &Options::SetBool}},
 };
 
-static void PrintError(const std::string& arg, std::string_view msg, bool from_env) {
+static std::string GetError(const std::string& arg, std::string_view msg, bool from_env) {
+  std::string error;
   if (from_env) {
     std::string variable(arg);
     std::transform(variable.begin(), variable.end(), variable.begin(),
                    [](char c) { return std::toupper(c); });
-    printf("env[%s] %s\n", variable.c_str(), msg.data());
+    error = "env[" + variable + "] ";
   } else if (arg[0] == '-') {
-    printf("%s %s\n", arg.c_str(), msg.data());
+    error = arg + " ";
   } else {
-    printf("--%s %s\n", arg.c_str(), msg.data());
+    error = "--" + arg + " ";
   }
+  return error + std::string(msg);
 }
 
 template <typename IntType>
 static bool GetNumeric(const std::string& arg, const std::string& value, IntType* numeric_value,
-                       bool from_env) {
+                       bool from_env, std::string& error) {
   auto result = std::from_chars(value.c_str(), value.c_str() + value.size(), *numeric_value, 10);
   if (result.ec == std::errc::result_out_of_range) {
-    PrintError(arg, std::string("value overflows (") + value + ")", from_env);
+    error = GetError(arg, std::string("value overflows (") + value + ")", from_env);
     return false;
   } else if (result.ec == std::errc::invalid_argument || result.ptr == nullptr ||
              *result.ptr != '\0') {
-    PrintError(arg, std::string("value is not formatted as a numeric value (") + value + ")",
-               from_env);
+    error = GetError(arg, std::string("value is not formatted as a numeric value (") + value + ")",
+                     from_env);
     return false;
   }
   return true;
@@ -117,11 +119,11 @@ bool Options::SetPrintTime(const std::string&, const std::string& value, bool) {
 
 bool Options::SetNumeric(const std::string& arg, const std::string& value, bool from_env) {
   uint64_t* numeric = &numerics_.find(arg)->second;
-  if (!GetNumeric<uint64_t>(arg, value, numeric, from_env)) {
+  if (!GetNumeric<uint64_t>(arg, value, numeric, from_env, error_)) {
     return false;
   }
   if (*numeric == 0) {
-    PrintError(arg, "requires a number greater than zero.", from_env);
+    error_ = GetError(arg, "requires a number greater than zero.", from_env);
     return false;
   }
   return true;
@@ -129,11 +131,11 @@ bool Options::SetNumeric(const std::string& arg, const std::string& value, bool 
 
 bool Options::SetNumericEnvOnly(const std::string& arg, const std::string& value, bool from_env) {
   if (!from_env) {
-    PrintError(arg, "is only supported as an environment variable.", false);
+    error_ = GetError(arg, "is only supported as an environment variable.", false);
     return false;
   }
   uint64_t* numeric = &numerics_.find(arg)->second;
-  if (!GetNumeric<uint64_t>(arg, value, numeric, from_env)) {
+  if (!GetNumeric<uint64_t>(arg, value, numeric, from_env, error_)) {
     return false;
   }
   return true;
@@ -145,7 +147,7 @@ bool Options::SetBool(const std::string& arg, const std::string&, bool) {
 }
 
 bool Options::SetIterations(const std::string& arg, const std::string& value, bool from_env) {
-  if (!GetNumeric<int>(arg, value, &num_iterations_, from_env)) {
+  if (!GetNumeric<int>(arg, value, &num_iterations_, from_env, error_)) {
     return false;
   }
   return true;
@@ -158,22 +160,22 @@ bool Options::SetString(const std::string& arg, const std::string& value, bool) 
 
 bool Options::SetXmlFile(const std::string& arg, const std::string& value, bool from_env) {
   if (value.substr(0, 4) != "xml:") {
-    PrintError(arg, "only supports an xml output file.", from_env);
+    error_ = GetError(arg, "only supports an xml output file.", from_env);
     return false;
   }
   std::string xml_file(value.substr(4));
   if (xml_file.empty()) {
-    PrintError(arg, "requires a file name after xml:", from_env);
+    error_ = GetError(arg, "requires a file name after xml:", from_env);
     return false;
   }
   // Need an absolute file.
   if (xml_file[0] != '/') {
     char* cwd = getcwd(nullptr, 0);
     if (cwd == nullptr) {
-      PrintError(arg,
-                 std::string("cannot get absolute pathname, getcwd() is failing: ") +
-                     strerror(errno) + '\n',
-                 from_env);
+      error_ = GetError(arg,
+                        std::string("cannot get absolute pathname, getcwd() is failing: ") +
+                            strerror(errno) + '\n',
+                        from_env);
       return false;
     }
     xml_file = std::string(cwd) + '/' + xml_file;
@@ -191,13 +193,13 @@ bool Options::SetXmlFile(const std::string& arg, const std::string& value, bool 
 bool Options::HandleArg(const std::string& arg, const std::string& value, const ArgInfo& info,
                         bool from_env) {
   if (info.flags & FLAG_INCOMPATIBLE) {
-    PrintError(arg, "is not compatible with isolation runs.", from_env);
+    error_ = GetError(arg, "is not compatible with isolation runs.", from_env);
     return false;
   }
 
   if (info.flags & FLAG_TAKES_VALUE) {
     if ((info.flags & FLAG_REQUIRES_VALUE) && value.empty()) {
-      PrintError(arg, "requires an argument.", from_env);
+      error_ = GetError(arg, "requires an argument.", from_env);
       return false;
     }
 
@@ -205,7 +207,7 @@ bool Options::HandleArg(const std::string& arg, const std::string& value, const 
       return false;
     }
   } else if (!value.empty()) {
-    PrintError(arg, "does not take an argument.", from_env);
+    error_ = GetError(arg, "does not take an argument.", from_env);
     return false;
   } else if (info.func != nullptr) {
     return (this->*(info.func))(arg, value, from_env);
@@ -230,7 +232,7 @@ static bool ReadFileToString(const std::string& file, std::string* contents) {
 bool Options::ProcessFlagfile(const std::string& file, std::vector<char*>* child_args) {
   std::string contents;
   if (!ReadFileToString(file, &contents)) {
-    printf("Unable to read data from file %s\n", file.c_str());
+    error_ = "Unable to read data from file " + file;
     return false;
   }
 
@@ -261,10 +263,10 @@ bool Options::ProcessFlagfile(const std::string& file, std::vector<char*>* child
 bool Options::ProcessSingle(const char* arg, std::vector<char*>* child_args, bool allow_flagfile) {
   if (strncmp("--", arg, 2) != 0) {
     if (arg[0] == '-') {
-      printf("Unknown argument: %s\n", arg);
+      error_ = std::string("Unknown argument: ") + arg;
       return false;
     } else {
-      printf("Unexpected argument '%s'\n", arg);
+      error_ = std::string("Unexpected argument '") + arg + "'";
       return false;
     }
   }
@@ -281,7 +283,7 @@ bool Options::ProcessSingle(const char* arg, std::vector<char*>* child_args, boo
   }
   auto entry = kArgs.find(name);
   if (entry == kArgs.end()) {
-    printf("Unknown argument: %s\n", arg);
+    error_ = std::string("Unknown argument: ") + arg;
     return false;
   }
 
@@ -297,7 +299,7 @@ bool Options::ProcessSingle(const char* arg, std::vector<char*>* child_args, boo
   // file and treat each line as a flag.
   if (name == "gtest_flagfile") {
     if (!allow_flagfile) {
-      printf("Argument: %s is not allowed in flag file.\n", arg);
+      error_ = std::string("Argument: ") + arg + " is not allowed in flag file.";
       return false;
     }
     if (!ProcessFlagfile(value, child_args)) {
@@ -361,13 +363,13 @@ bool Options::Process(const std::vector<const char*>& args, std::vector<char*>* 
       if (*value == '\0') {
         // Get the next argument.
         if (i == args.size() - 1) {
-          printf("-j requires an argument.\n");
+          error_ = "-j requires an argument.";
           return false;
         }
         i++;
         value = args[i];
       }
-      if (!GetNumeric<size_t>("-j", value, &job_count_, false)) {
+      if (!GetNumeric<size_t>("-j", value, &job_count_, false, error_)) {
         return false;
       }
     } else {
