@@ -186,6 +186,8 @@ int IsolateMain(int argc, char** argv, char**) {
 
     android::gtest_extras::Isolate isolate(options, child_args);
     return_val = isolate.Run();
+  } else {
+    printf("%s\n", options.error().c_str());
   }
 
   for (auto child_arg : child_args) {
